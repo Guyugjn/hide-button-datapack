@@ -2,6 +2,9 @@
 # 发布走 GitHub Release，附件由 CI 自动打包。
 dist/
 
+# 验收单：仅本地填写使用，不纳入版本管理。
+ybih_test_checklist.txt
+
 # 编辑器与系统
 .vscode/
 .idea/
