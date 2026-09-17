@@ -1056,7 +1056,8 @@ Boss 栏会随存档写进 `level.dat` 的 `CustomBossEvents`，`/reload` 不会
 ├── .gitignore                 # 忽略 dist/ 等构建产物
 ├── tools/
 │   ├── build.mjs              # 构建、静态校验与 zip 打包
-│   └── verify_zips.py         # 产物校验（CRC 与结构）
+│   ├── verify_zips.py         # 产物校验（CRC 与结构）
+│   └── check_md.js            # 文档格式检查（空行、标记配对、标题层级）
 ├── src/
 │   ├── manifest.mjs           # 3 个包的定义、选项函数、物品与文本语法
 │   ├── book.mjs               # 设置书的文案与排版
