@@ -2,7 +2,7 @@
 
 Minecraft Java 版数据包 · 命名空间 `ybih` · 支持 1.16.2 – 26.2
 
-[![构建并发布](https://github.com/guyuGY/hide-button-datapack/actions/workflows/release.yml/badge.svg)](https://github.com/guyuGY/hide-button-datapack/actions/workflows/release.yml)
+[![构建并发布](https://github.com/Guyugjn/hide-button-datapack/actions/workflows/release.yml/badge.svg)](https://github.com/Guyugjn/hide-button-datapack/actions/workflows/release.yml)
 [![许可证](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Minecraft](https://img.shields.io/badge/Minecraft-1.16.2%20–%2026.2-green.svg)](#一装哪个包)
 
