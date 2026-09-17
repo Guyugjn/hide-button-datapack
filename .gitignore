@@ -1,0 +1,22 @@
+# 构建产物：由 tools/build.mjs 生成，不纳入版本管理。
+# 发布走 GitHub Release，附件由 CI 自动打包。
+dist/
+
+# 编辑器与系统
+.vscode/
+.idea/
+*.code-workspace
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Node 依赖与日志
+node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# 临时文件
+*.tmp
+*.bak
+*~

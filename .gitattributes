@@ -1,0 +1,18 @@
+# 全部按 LF 存储，避免跨平台检出时行尾混乱
+* text=auto eol=lf
+
+# Windows 脚本保留 CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 明确按文本处理并按语言统计
+*.md    text diff=markdown
+*.txt   text
+*.json  text
+*.mjs   text
+*.mcfunction text
+
+# 二进制
+*.zip   binary
+*.png   binary
+*.jar   binary

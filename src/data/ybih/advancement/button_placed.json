@@ -1,0 +1,10 @@
+{
+  "criteria": {
+    "placed": {
+      "trigger": "minecraft:placed_block"
+    }
+  },
+  "rewards": {
+    "function": "ybih:button/on_place"
+  }
+}

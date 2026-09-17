@@ -1,0 +1,22 @@
+{
+  "criteria": {
+    "used": {
+      "trigger": "minecraft:{{USE_TRIGGER}}",
+      "conditions": {
+        "location": [
+          {
+            "condition": "minecraft:location_check",
+            "predicate": {
+              "block": {
+                "tag": "minecraft:buttons"
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "rewards": {
+    "function": "ybih:button/on_use"
+  }
+}
