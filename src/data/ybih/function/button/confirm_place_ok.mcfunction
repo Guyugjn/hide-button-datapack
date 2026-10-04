@@ -8,6 +8,13 @@
 # 必须排在摘掉 ybih_pending 之前：摘完这个选择器就选不中它了
 execute as @e[tag=ybih_pending] at @s run forceload add ~ ~
 tag @e[tag=ybih_pending] add ybih_pinned
+# 这个按钮能吃几份分：除物主以外的人都可能来按，所以份数 = 参与者总数 - 1。
+# 分值挂在按钮自己身上（ybih.value），场上每个按钮各算各的，互不影响。
+# 物主自己按不给分，所以这个数字正好等于能从这个按钮上拿分的次数。
+# 这一段必须排在摘掉 ybih_pending 之前 —— 那是本回合唯一能选中这个按钮的标签
+scoreboard players operation @e[tag=ybih_pending] ybih.value = #player_count ybih.config
+scoreboard players remove @e[tag=ybih_pending] ybih.value 1
+scoreboard players set @e[tag=ybih_pending] ybih.hit 0
 tag @e[tag=ybih_pending] remove ybih_pending
 scoreboard players add #button_count ybih.config 1
 scoreboard players set @s ybih.placed 1

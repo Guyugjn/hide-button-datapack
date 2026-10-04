@@ -1,0 +1,17 @@
+{
+  "criteria": {
+    "used": {
+      "trigger": "minecraft:item_used_on_block",
+      "conditions": {
+        "location": {
+          "block": {
+            "tag": "minecraft:buttons"
+          }
+        }
+      }
+    }
+  },
+  "rewards": {
+    "function": "ybih:button/on_use_legacy"
+  }
+}

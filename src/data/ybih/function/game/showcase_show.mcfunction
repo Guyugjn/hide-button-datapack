@@ -1,6 +1,6 @@
 # ybih:game/showcase_show —— 把全体带到这个按钮跟前
 # 执行者是待展示按钮的标记实体，观看位置由 showcase_view 按朝向算
-# ybih_ghost 代表这个按钮当时已经被找到了，Boss 栏与标题要分开说
+# ybih_ghost 代表这个按钮的分已经被拿完、方块收走了，Boss 栏与标题要分开说
 
 tag @s add ybih_shown
 # 记录「当前正在展示的是哪一个」：定格期间 showcase_tick 要每 tick 找到它按人回站位。

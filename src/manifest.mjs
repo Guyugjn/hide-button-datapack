@@ -40,8 +40,8 @@ export const TEXT_JSON = {
   SCORE_BUTTONS: '{"score":{"name":"#button_count","objective":"ybih.config"}}',
   SCORE_GAINED: '{"score":{"name":"#gained","objective":"ybih.config"}}',
   SCORE_RANK: '{"score":{"name":"#ranked","objective":"ybih.config"}}',
-  SCORE_FOUNDSEQ: '{"score":{"name":"#found_seq","objective":"ybih.config"}}',
-  SCORE_SEEKERS: '{"score":{"name":"#seekers_left","objective":"ybih.config"}}',
+  SCORE_SEEKERS: '{"score":{"name":"#seekers_total","objective":"ybih.config"}}',
+  SCORE_BTNLEFT: '{"score":{"name":"#btn_left","objective":"ybih.config"}}',
   SCORE_ROUNDSTOTAL: '{"score":{"name":"#rounds_total","objective":"ybih.config"}}',
   SCORE_CYCLE: '{"score":{"name":"#cycle","objective":"ybih.config"}}',
   SCORE_CD_MIN: '{"score":{"name":"#cd_min","objective":"ybih.config"}}',
@@ -78,8 +78,8 @@ export const TEXT_SNBT = {
   SCORE_BUTTONS: "{score:{name:'#button_count',objective:'ybih.config'}}",
   SCORE_GAINED: "{score:{name:'#gained',objective:'ybih.config'}}",
   SCORE_RANK: "{score:{name:'#ranked',objective:'ybih.config'}}",
-  SCORE_FOUNDSEQ: "{score:{name:'#found_seq',objective:'ybih.config'}}",
-  SCORE_SEEKERS: "{score:{name:'#seekers_left',objective:'ybih.config'}}",
+  SCORE_SEEKERS: "{score:{name:'#seekers_total',objective:'ybih.config'}}",
+  SCORE_BTNLEFT: "{score:{name:'#btn_left',objective:'ybih.config'}}",
   SCORE_ROUNDSTOTAL: "{score:{name:'#rounds_total',objective:'ybih.config'}}",
   SCORE_CYCLE: "{score:{name:'#cycle',objective:'ybih.config'}}",
   SCORE_CD_MIN: "{score:{name:'#cd_min',objective:'ybih.config'}}",
@@ -206,7 +206,16 @@ export const PACKS = [
       supported_formats: { min_inclusive: 6, max_inclusive: 26 },
     },
     // 按下判定的进度触发器：any_block_use 是 1.20.5 才加的，本包区间只能用 item_used_on_block
-    tokens: { ...TEXT_JSON, USE_TRIGGER: 'item_used_on_block' },
+    // 方块谓词在 1.20.5 才把 tag 换成 blocks（且 blocks 从那时起才收 #标签），本包只能写 tag
+    tokens: {
+      ...TEXT_JSON,
+      USE_TRIGGER: 'item_used_on_block',
+      BTN_BLOCK_PRED: '{ "tag": "minecraft:buttons" }',
+    },
+    // 本包横跨 1.20 那条分界线（location 从裸对象收成谓词数组），必须两份进度并存：
+    // 认得旧格式的版本加载 button_used_legacy、认得新格式的版本加载 button_used，
+    // 另一份会因结构不合法被跳过（只写日志）。另外两包的下限都在 1.20.5 之后，用不上旧格式
+    skipFiles: [],
     materials: [...BASE_MATERIALS],
     give: giveLegacy,
     bookStyle: 'legacy',
@@ -231,7 +240,18 @@ export const PACKS = [
       supported_formats: { min_inclusive: 41, max_inclusive: 61 },
     },
     // 1.20.5 起 item_used_on_block 不再对空手交互触发，改用覆盖所有方块交互的 any_block_use
-    tokens: { ...TEXT_JSON, USE_TRIGGER: 'any_block_use' },
+    tokens: {
+      ...TEXT_JSON,
+      USE_TRIGGER: 'any_block_use',
+      BTN_BLOCK_PRED: '{ "blocks": "#minecraft:buttons" }',
+    },
+    // 下限已过 1.20.5，旧格式那份进度在本包全区间都加载不了，不发出去。
+    // 配套的入口函数也得摘掉 —— 它最后一行撤的是那份不存在的进度，
+    // 留着会在每次按下时刷一条命令失败
+    skipFiles: [
+      'data/ybih/advancement/button_used_legacy.json',
+      'data/ybih/function/button/on_use_legacy.mcfunction',
+    ],
     materials: [...BASE_MATERIALS, ...V119_MATERIALS, ...V120_MATERIALS],
     give: giveComponentA,
     bookStyle: 'component-json',
@@ -257,7 +277,16 @@ export const PACKS = [
       min_format: [71, 0],
       max_format: [107, 1],
     },
-    tokens: { ...TEXT_SNBT, USE_TRIGGER: 'any_block_use' },
+    tokens: {
+      ...TEXT_SNBT,
+      USE_TRIGGER: 'any_block_use',
+      BTN_BLOCK_PRED: '{ "blocks": "#minecraft:buttons" }',
+    },
+    // 同上一包：旧格式的那份进度与它的入口函数在这里都用不上
+    skipFiles: [
+      'data/ybih/advancement/button_used_legacy.json',
+      'data/ybih/function/button/on_use_legacy.mcfunction',
+    ],
     materials: [...BASE_MATERIALS, ...V119_MATERIALS, ...V120_MATERIALS, ...V1214_MATERIALS],
     give: giveComponentB,
     bookStyle: 'component-snbt',

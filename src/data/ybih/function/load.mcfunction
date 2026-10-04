@@ -9,7 +9,6 @@ scoreboard objectives add ybih.owner_id dummy
 scoreboard objectives add ybih.death deathCount
 scoreboard objectives add ybih.finds dummy
 scoreboard objectives add ybih.t_first dummy
-scoreboard objectives add ybih.found dummy
 # ybih.trigger 必须是 trigger 准则，聊天栏的点击命令才能用 /trigger 提交
 scoreboard objectives add ybih.trigger trigger
 scoreboard objectives add ybih.used dummy
@@ -22,10 +21,16 @@ scoreboard objectives add ybih.era dummy
 scoreboard objectives add ybih.fixed dummy
 # 本局里这个按钮是第几个藏下的：轮末围观按它排序，先藏的先看
 scoreboard objectives add ybih.seq dummy
+# 按钮自身还剩几份分：挂在按钮标记上，谁按谁取走一份，取完这个按钮才收掉。
+# 分值挂在按钮上而不是全局池，场上每个按钮各算各的
+scoreboard objectives add ybih.value dummy
+# 按钮上的位图：记「谁从这个按钮上拿过分」，位号 = 玩家编号 - 1。
+# 记分板没有按位与，判定写成取模，见 button/award_grant
+scoreboard objectives add ybih.hit dummy
 # 侧边栏看的是镜像榜：真实分数在 ybih.score，这里只放当前在线的人
 scoreboard objectives add ybih.board dummy
 
-# 围观高亮用：发光轮廓的颜色取自队伍，红=已被找到、绿=没被找到。
+# 围观高亮用：发光轮廓的颜色取自队伍，红=分被拿完、绿=还有分。
 # 队伍只装标记与「正被展示的那个按钮的物主」，其余玩家一律不进队。
 # team add 对已存在的队伍会失败，和 objectives add 同一个坑，
 # 所以只在首次加载建一次。没有 if team 这种条件，用 team list 的成败去探

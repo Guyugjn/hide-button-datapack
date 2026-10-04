@@ -12,7 +12,6 @@ scoreboard players set @a ybih.score 0
 scoreboard players reset * ybih.board
 scoreboard players set @a ybih.placed 0
 scoreboard players set @a ybih.turn 0
-scoreboard players set @a ybih.found 0
 scoreboard players set @a ybih.finds 0
 scoreboard players set @a ybih.t_first 999999
 scoreboard players set @a ybih.trigger 0
@@ -35,8 +34,7 @@ execute if score #mode ybih.config matches 2 run scoreboard players operation #r
 scoreboard players set #tick ybih.config 0
 scoreboard players set #gained ybih.config 0
 scoreboard players set #ranked ybih.config 0
-scoreboard players set #found_seq ybih.config 0
-scoreboard players set #seekers_left ybih.config 0
+scoreboard players set #seekers_total ybih.config 0
 scoreboard players set #best_score ybih.config -2147483648
 scoreboard players set #best_finds ybih.config -1
 scoreboard players set #best_tfirst ybih.config 999999

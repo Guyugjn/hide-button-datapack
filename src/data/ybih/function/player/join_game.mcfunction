@@ -6,7 +6,6 @@ scoreboard players add #next_id ybih.config 1
 scoreboard players set @s ybih.score 0
 scoreboard players set @s ybih.placed 0
 scoreboard players set @s ybih.turn 0
-scoreboard players set @s ybih.found 0
 scoreboard players set @s ybih.finds 0
 scoreboard players set @s ybih.t_first 999999
 scoreboard players set @s ybih.trigger 0

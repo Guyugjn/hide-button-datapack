@@ -6,6 +6,6 @@
 # 命中却读不到编号时（往局残留）不锁定，让射线继续往里找
 
 scoreboard players set #use_bid ybih.config 0
-execute as @e[tag=ybih_button,tag=!ybih_pending,distance=..0.8,limit=1,sort=nearest] if score @s ybih.era = #era ybih.config run scoreboard players operation #use_bid ybih.config = @s ybih.bid
+execute as @e[tag=ybih_button,tag=!ybih_pending,distance=..0.5,limit=1,sort=nearest] if score @s ybih.era = #era ybih.config run scoreboard players operation #use_bid ybih.config = @s ybih.bid
 execute if score #use_bid ybih.config matches 1.. run tag @s add ybih_ray_found
 execute if score #use_bid ybih.config matches 1.. run scoreboard players operation @s ybih.used_bid = #use_bid ybih.config

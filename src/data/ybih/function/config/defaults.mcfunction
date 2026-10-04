@@ -35,6 +35,18 @@ execute unless score #bid ybih.config matches 1.. run scoreboard players set #bi
 scoreboard players set #use_min ybih.config 0
 # 按下判定时暂存「被按下的这个按钮」的编号，与玩家的 ybih.used_bid 比对
 scoreboard players set #press_bid ybih.config 0
+# 位图去重的三个暂存：这位玩家的掩码、取模用的模数、按钮位图取模后的结果
+scoreboard players set #hit_bit ybih.config 0
+scoreboard players set #hit_pow ybih.config 0
+scoreboard players set #hit_now ybih.config 0
+# 本次按下不计分的理由：1 超出位图上限 / 2 已经拿过 / 3 分值已空 / 4 按钮不在了
+scoreboard players set #deny ybih.config 0
+# 位图写入的成败：写不进去就不计分，并撤掉闸门让玩家重试
+scoreboard players set #hit_ok ybih.config 0
+# 本轮搜寻者人数：轮流模式开场时算一次，只用于播报
+scoreboard players set #seekers_total ybih.config 0
+# 按钮递减后的余额：与 #gained（这次拿到的分）分开记，不要互相覆盖
+scoreboard players set #btn_left ybih.config 0
 # 射线锁定按钮时暂存读到的编号
 scoreboard players set #use_bid ybih.config 0
 scoreboard players set #button_count ybih.config 0
@@ -42,13 +54,9 @@ scoreboard players set #hide_timer ybih.config 60
 scoreboard players set #round ybih.config 0
 scoreboard players set #cycle ybih.config 1
 scoreboard players set #need_tool ybih.config 0
-scoreboard players set #survive_hit ybih.config 0
-scoreboard players set #survive_self ybih.config 0
 scoreboard players set #tick ybih.config 0
 scoreboard players set #gained ybih.config 0
 scoreboard players set #ranked ybih.config 0
-scoreboard players set #found_seq ybih.config 0
-scoreboard players set #seekers_left ybih.config 0
 scoreboard players set #player_count ybih.config 0
 scoreboard players set #rounds_total ybih.config 1
 scoreboard players set #best_score ybih.config -2147483648
@@ -67,7 +75,7 @@ scoreboard players set #online_sum ybih.config 0
 scoreboard players set #online_sum_prev ybih.config 0
 
 # 围观展示：当前看到第几个、本轮到第几个、停留计时、剩余秒数、标题刷新倒计时，
-# 以及正在看的这个按钮当时有没有被找到
+# 以及正在看的这个按钮的分是不是已经被拿完
 scoreboard players set #show_found ybih.config 0
 scoreboard players set #show_idx ybih.config 0
 scoreboard players set #show_timer ybih.config 0

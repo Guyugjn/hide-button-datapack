@@ -103,6 +103,31 @@ function genPressScan(pack) {
   return lines.join('\n') + '\n';
 }
 
+// 按钮位图：ybih.hit 挂在按钮标记上，记「谁从这个按钮上拿过分」，位号 = 玩家 ybih.id - 1。
+// 记分板没有按位与，判定写成取模：hit % 2^id >= 2^(id-1) 等价于「第 id-1 位已置」。
+// 位宽上限 30：再往上 2^id 会溢出 int32，所以编号超过 30 的掩码留 0，调用方据此拒绝并提示。
+// 掩码与模数都算成常量分派，只在这一位玩家真的按下时执行一次，不进每 tick 循环
+const HIT_BITS = 30;
+
+function genHitBit(pack) {
+  const lines = [
+    '# ybih:button/hit_bit —— 按玩家编号算出他在按钮位图里的掩码（执行者是玩家）',
+    '# #hit_bit = 2^(id-1) 是掩码，#hit_pow = 2^id 是取模用的模数',
+    '# 编号超过位宽上限时两者都留 0，由 award_grant 判定为无法去重并拒绝',
+    '',
+    'scoreboard players set #hit_bit ybih.config 0',
+  ];
+  for (let id = 1; id <= HIT_BITS; id++) {
+    lines.push(
+      `execute if score @s ybih.id matches ${id} run scoreboard players set #hit_bit ybih.config ${2 ** (id - 1)}`,
+    );
+  }
+  lines.push('');
+  lines.push('scoreboard players operation #hit_pow ybih.config = #hit_bit ybih.config');
+  lines.push('scoreboard players operation #hit_pow ybih.config *= #c2 ybih.config');
+  return lines.join('\n') + '\n';
+}
+
 // 取消重放：把刚用掉的材质退回给玩家，让他能重新找位置
 function genRefundPending(pack) {
   const lines = [
@@ -367,6 +392,7 @@ const GENERATED = {
   'data/ybih/function/button/tag_face.mcfunction': genTagFace,
   'data/ybih/function/button/press_tick.mcfunction': genPressTick,
   'data/ybih/function/button/press_scan.mcfunction': genPressScan,
+  'data/ybih/function/button/hit_bit.mcfunction': genHitBit,
   'data/ybih/function/button/protect_check.mcfunction': genProtectCheck,
   'data/ybih/function/button/protect_restore.mcfunction': genProtectRestore,
   'data/ybih/function/button/refund_pending.mcfunction': genRefundPending,
@@ -454,6 +480,16 @@ function buildPack(pack) {
   }
   for (const [rel, gen] of Object.entries(GENERATED)) {
     emitted.set(rel, gen(pack));
+  }
+  // 只在部分版本区间成立的源文件由各包自己声明不发出。
+  // 典型是进度条件：1.20 把 location 从裸对象收成谓词数组，同一份 JSON 不可能两边都合法，
+  // 于是分两个文件并存，不适用它的包把用不上的那份摘掉，免得每次加载都多一条解析错误。
+  // 声明了却对不上任何源文件是配置写错了，直接中断构建
+  for (const rel of pack.skipFiles ?? []) {
+    if (!emitted.has(rel)) {
+      throw new Error(`包 ${pack.id} 的 skipFiles 声明了不存在的文件：${rel}`);
+    }
+    emitted.delete(rel);
   }
 
   // 每个可选数值一个函数：改完值统一走反馈函数，保证有点击音效与回执
@@ -568,12 +604,23 @@ function validate(packDir, pack) {
       }
       // 进度的条件结构写错时 JSON 依然合法、加载也不报错，只是**永远不匹配** ——
       // 表现成「按下去毫无反应」，比语法错误难查得多。
-      // location 必须是谓词数组（每个元素带 condition），写成裸对象就是死条件。
+      // 1.20 起 location 必须是谓词数组（每个元素带 condition），写成裸对象就是死条件；
+      // 但 1.16.2–1.19.4 那边 location 本来就是裸对象，所以下限早于 1.20 的包放行对象写法。
+      // 判定按包的下限走，而不是按「看起来像什么」——否则两种写法都像对的
+      const legacyLocOk = !versionAtLeast(pack.minVersion, '1.20');
       if (parsed && rel.includes('advancement')) {
         for (const [name, crit] of Object.entries(parsed.criteria ?? {})) {
           const loc = crit?.conditions?.location;
           if (loc === undefined) continue;
           if (!Array.isArray(loc)) {
+            if (
+              legacyLocOk &&
+              typeof loc === 'object' &&
+              loc !== null &&
+              loc.block !== undefined
+            ) {
+              continue; // 1.20 之前的合法写法
+            }
             errors.push(
               `进度条件 location 必须是谓词数组（写成裸对象会导致条件永不匹配）于 ${rel} 的 ${name}`,
             );

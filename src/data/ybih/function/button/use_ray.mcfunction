@@ -1,4 +1,5 @@
-# ybih:button/use_ray —— 沿视线每步前进 0.1 格、最多 40 步（4 格），找到对着的按钮标记
+# ybih:button/use_ray —— 沿视线每步前进 0.1 格、最多 60 步（6 格），找到对着的按钮标记
+# 长度与放置射线一致：按钮最远能在 5 格附近被点到，射线短于交互距离就会漏判，那次按下白按
 # 每步探「当前格 + 上下前后左右 6 邻格」：按钮由原版放在被点方块的邻格里，
 # 而非完整方块（半砖、楼梯、活板门）的命中点在方块内部，视线射线不会经过按钮那一格，
 # 必须顺带探邻格才能找到它 —— 与 button/ray_loop 是同一个坑
@@ -15,4 +16,4 @@ execute unless entity @s[tag=ybih_ray_found] positioned ~1 ~ ~ run function ybih
 execute unless entity @s[tag=ybih_ray_found] positioned ~-1 ~ ~ run function ybih:button/use_probe
 execute unless entity @s[tag=ybih_ray_found] positioned ~ ~ ~1 run function ybih:button/use_probe
 execute unless entity @s[tag=ybih_ray_found] positioned ~ ~ ~-1 run function ybih:button/use_probe
-execute if score #ray_step ybih.config matches ..39 unless entity @s[tag=ybih_ray_found] positioned ^ ^ ^0.1 run function ybih:button/use_ray
+execute if score #ray_step ybih.config matches ..59 unless entity @s[tag=ybih_ray_found] positioned ^ ^ ^0.1 run function ybih:button/use_ray

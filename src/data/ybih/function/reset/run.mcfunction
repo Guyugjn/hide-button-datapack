@@ -35,7 +35,6 @@ scoreboard players set @a ybih.id 0
 scoreboard players set @a ybih.owner_id 0
 scoreboard players set @a ybih.finds 0
 scoreboard players set @a ybih.t_first 999999
-scoreboard players set @a ybih.found 0
 scoreboard players set @a ybih.trigger 0
 scoreboard players set @a ybih.used -1
 scoreboard players set @a ybih.used_bid 0
@@ -61,7 +60,6 @@ scoreboard players set #button_count ybih.config 0
 scoreboard players set #tick ybih.config 0
 scoreboard players set #gained ybih.config 0
 scoreboard players set #ranked ybih.config 0
-scoreboard players set #found_seq ybih.config 0
-scoreboard players set #seekers_left ybih.config 0
+scoreboard players set #seekers_total ybih.config 0
 function ybih:game/bar_hide
 tellraw @a {{TXT_S}}[你的按钮我来藏] 已重置{{TXT_M}}green{{TXT_E}}

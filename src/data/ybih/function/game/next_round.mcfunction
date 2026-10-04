@@ -11,7 +11,6 @@ execute if score #mode ybih.config matches 2 run scoreboard players operation #r
 execute if score #mode ybih.config matches 2 run scoreboard players operation #rounds_total ybih.config *= #player_count ybih.config
 
 scoreboard players set @a[tag=ybih_player] ybih.placed 0
-scoreboard players set @a[tag=ybih_player] ybih.found 0
 # 新的一轮，藏匿编号从头开始
 scoreboard players set #seq ybih.config 0
 execute if score #mode ybih.config matches 1 run scoreboard players set @a[tag=ybih_player] ybih.turn 0
@@ -29,5 +28,5 @@ title @a title [{{TXT_S}}第 {{TXT_E}},{{SCORE_ROUND}},{{TXT_S}} / {{TXT_E}},{{S
 title @a subtitle {{TXT_S}}准备开始{{TXT_E}}
 tellraw @a {{TXT_S}}分数累计保留，轮到你时会拿到按钮{{TXT_M}}gray{{TXT_E}}
 
-# 全员找到会直接从按下检测走到这里，不经过每秒循环
+# 轮流模式分被拿完会直接从按下检测走到这里，不经过每秒循环
 function ybih:game/bar_update

@@ -5,5 +5,5 @@
 # 那时没有标记上下文、也取不到物主，只有切换的那一帧才知道物主是谁。
 # 所以名字在切换时写一次，之后每秒的刷新沿用同样的文案
 
-execute if score #show_found ybih.config matches 1 run bossbar set ybih:timer name [{{TXT_S}}已被找到的按钮 · {{TXT_E}},{{SEL_S}}@s{{SEL_E}},{{TXT_S}} 藏的 · {{TXT_E}},{{SCORE_SHOWIDX}},{{TXT_S}} / {{TXT_E}},{{SCORE_SHOWTOTAL}},{{TXT_S}} · 还剩 {{TXT_E}},{{SCORE_SHOWSEC}},{{TXT_S}} 秒{{TXT_E}}]
-execute if score #show_found ybih.config matches 0 run bossbar set ybih:timer name [{{TXT_S}}没被找到的按钮 · {{TXT_E}},{{SEL_S}}@s{{SEL_E}},{{TXT_S}} 藏的 · {{TXT_E}},{{SCORE_SHOWIDX}},{{TXT_S}} / {{TXT_E}},{{SCORE_SHOWTOTAL}},{{TXT_S}} · 还剩 {{TXT_E}},{{SCORE_SHOWSEC}},{{TXT_S}} 秒{{TXT_E}}]
+execute if score #show_found ybih.config matches 1 run bossbar set ybih:timer name [{{TXT_S}}分被拿完的按钮 · {{TXT_E}},{{SEL_S}}@s{{SEL_E}},{{TXT_S}} 藏的 · {{TXT_E}},{{SCORE_SHOWIDX}},{{TXT_S}} / {{TXT_E}},{{SCORE_SHOWTOTAL}},{{TXT_S}} · 还剩 {{TXT_E}},{{SCORE_SHOWSEC}},{{TXT_S}} 秒{{TXT_E}}]
+execute if score #show_found ybih.config matches 0 run bossbar set ybih:timer name [{{TXT_S}}还有分的按钮 · {{TXT_E}},{{SEL_S}}@s{{SEL_E}},{{TXT_S}} 藏的 · {{TXT_E}},{{SCORE_SHOWIDX}},{{TXT_S}} / {{TXT_E}},{{SCORE_SHOWTOTAL}},{{TXT_S}} · 还剩 {{TXT_E}},{{SCORE_SHOWSEC}},{{TXT_S}} 秒{{TXT_E}}]

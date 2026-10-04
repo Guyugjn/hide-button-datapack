@@ -1,6 +1,6 @@
 # ybih:game/showcase_start —— 进入围观阶段：把本局按钮摘出对局管理，全体转旁观
 # 摘掉 ybih_button 之后，清场、保护、按下检测都不再管它们
-# ybih_ghost 保留着不摘：它是「这个按钮当时被找到了」的判据，showcase_bar 要靠它换文案
+# ybih_ghost 保留着不摘：它是「这个按钮的分已经被拿完」的判据，showcase_bar 要靠它换文案
 
 scoreboard players set #state ybih.config 4
 scoreboard players set #show_idx ybih.config 0
@@ -14,7 +14,7 @@ execute as @e[tag=ybih_showcase] run tag @s remove ybih_button
 execute as @e[tag=ybih_showcase] run tag @s remove ybih_shown
 execute as @e[tag=ybih_showing] run tag @s remove ybih_showing
 
-# 被按掉的按钮把方块摆回去，用的就是保护机制那套「按材质与朝向还原」。
+# 分被拿完的按钮把方块摆回去，用的就是保护机制那套「按材质与朝向还原」。
 # 只在那一格是空气时动手：万一玩家后来在旧位置放了别的方块，
 # 覆盖上去、围观结束再清成空气，就等于平白删了他一个方块
 # 还要先过一遍水的检查：按钮存不住水，摆回去当场就会被冲掉、掉落一个按钮物品
