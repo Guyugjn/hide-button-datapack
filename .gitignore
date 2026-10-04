@@ -5,6 +5,10 @@ dist/
 # 验收单：仅本地填写使用，不纳入版本管理。
 ybih_test_checklist.txt
 
+# 设计文档与开发笔记：仅本地使用，不纳入版本管理。
+ybih_design_doc.md
+ybih_memory.md
+
 # 编辑器与系统
 .vscode/
 .idea/
