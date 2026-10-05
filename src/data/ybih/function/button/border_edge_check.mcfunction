@@ -1,6 +1,7 @@
 # ybih:button/border_edge_check —— 判定刚放下的按钮是不是贴到了边界最外一圈
 # 口径：按钮到集合点的水平距离（切比雪夫，取 x/z 里大的那个）必须 ≤ 半径 − 1
-# 坐标乘 100 再存进记分板，保留两位小数，免得取整误差正好吃掉那一格余量
+# 坐标乘 100 再存进记分板，把两位小数带进来，免得取整误差正好吃掉那一格余量；
+# 比较前再把差值除回 100，让限值那一侧全程保持「格」的量纲
 
 # 先清零再去坐标，免得某一次取不到时残留上一轮的值。
 # 调用方保证了执行到这里标记还在（水那道校验会先删标记并跳过本段），
@@ -28,7 +29,13 @@ execute in minecraft:overworld store result score #bw_now ybih.config run worldb
 scoreboard players operation #lim ybih.config = #bw_now ybih.config
 scoreboard players operation #lim ybih.config /= #c2 ybih.config
 scoreboard players remove #lim ybih.config 1
-scoreboard players operation #lim ybih.config *= #c100 ybih.config
+
+# 两侧都用「格」比，不要把 #lim 乘回 100：记分板是 int32 且溢出会静默回绕（不报错、也不夹紧）。
+# 原版默认直径 59999968 时 (59999968 / 2 - 1) * 100 = 2999998300 会回绕成负数，
+# 而 #dx/#dz 上面刚取过绝对值、恒 ≥ 0，判定就成了恒真 —— 任何按钮都会被拒，
+# 玩家还会一直收到「往里挪一点」的提示，永远挪不对
+scoreboard players operation #dx ybih.config /= #c100 ybih.config
+scoreboard players operation #dz ybih.config /= #c100 ybih.config
 
 execute if score #dx ybih.config > #lim ybih.config run scoreboard players set #out_border ybih.config 1
 execute if score #dz ybih.config > #lim ybih.config run scoreboard players set #out_border ybih.config 1

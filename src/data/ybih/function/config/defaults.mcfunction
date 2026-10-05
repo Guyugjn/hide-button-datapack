@@ -17,6 +17,9 @@ scoreboard players set #next_id ybih.config 1
 # 本局藏下的按钮数，也就是轮末围观用来排序的编号；按局递增，局初与重置归零
 scoreboard players set #seq ybih.config 0
 scoreboard players set #protect_timer ybih.config 5
+# 保护机制的判据之一：唯一写点是 config/apply，这里补一条同风格的守卫。
+# 缺了它会读到 0，保护遍历就变成每 tick 触发一次
+execute unless score #protect_period ybih.config matches 1.. run scoreboard players set #protect_period ybih.config 5
 scoreboard players set #hint_timer ybih.config 60
 scoreboard players set #actionbar_timer ybih.config 0
 scoreboard players set #best ybih.config 0
@@ -65,6 +68,11 @@ scoreboard players set #best_tfirst ybih.config 999999
 scoreboard players set #best_id ybih.config 0
 # 本回合藏匿者的编号：turn_next 在他还在线时记下，超时结算靠它找得到掉线的人
 scoreboard players set #hide_id ybih.config 0
+# 超时结算时目标不在线：扣分与 ybih.turn 置位都做不了，把编号挂在这里当欠账，等他重连自己来还。
+# 必须是独立于 #hide_id 的假玩家，否则下一位藏匿者一上任就把欠账抹掉
+scoreboard players set #hide_owed ybih.config 0
+# 结算时探一下目标在不在线，0 表示没探到（该记账），1 表示已经当场处理过
+scoreboard players set #hide_found ybih.config 0
 scoreboard players set #bw_now ybih.config 0
 
 # 侧边栏每秒对一次在线名单：计时器、兜底重建周期、以及判断「有人进出」的两个快照
@@ -87,6 +95,9 @@ scoreboard players set #show_refresh ybih.config 0
 scoreboard players set #freeze ybih.config 0
 # 挑下一个待展示按钮时的排序暂存：当前最小的藏匿编号
 scoreboard players set #show_best ybih.config 0
+# 当前展示按钮的物主编号：showcase_glow 写，showcase_bar 与 player/buff_guard 读。
+# 围观开始前没有任何物主，落 0 与「ybih.id 从 1 起分配」配套，谁都匹配不上
+scoreboard players set #show_owner ybih.config 0
 
 # 收回保不住的按钮时，用它暂存物主编号
 scoreboard players set #fix_owner ybih.config 0

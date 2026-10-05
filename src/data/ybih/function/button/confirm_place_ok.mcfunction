@@ -20,6 +20,6 @@ scoreboard players add #button_count ybih.config 1
 scoreboard players set @s ybih.placed 1
 scoreboard players set @s ybih.turn 1
 clear @s #minecraft:buttons
-playsound minecraft:block.stone_button.click_on_block player @s ~ ~ ~ 1 1.2
+playsound minecraft:block.stone_button.click_on player @s ~ ~ ~ 1 1.2
 tellraw @a [{{SEL_S}}@s{{SEL_E}},{{TXT_S}} 已藏好按钮{{TXT_M}}green{{TXT_E}}]
 function ybih:game/turn_advance

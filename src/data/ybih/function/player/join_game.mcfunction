@@ -12,13 +12,20 @@ scoreboard players set @s ybih.trigger 0
 scoreboard players set @s ybih.used -1
 scoreboard players set @s ybih.used_bid 0
 
-# 先撤掉可能残留的记录：局中掉线的人赶不上清场，标签会跟着存档留到下一局，
-# 新旧两个同时命中时，恢复模式那几条命令里靠后的会盖掉靠前的
+# 先无条件撤掉三个标签，保证身上至多只剩一个；这一步不能省 —— 恢复点的三条命令
+# 都带 gamemode=spectator 前置，先命中的那条会把玩家切出旁观，后面的就再也不命中，
+# 靠执行顺序盖不掉叠加
 tag @s remove ybih_gm_survival
 tag @s remove ybih_gm_creative
 tag @s remove ybih_gm_adventure
 execute if entity @s[gamemode=survival] run tag @s add ybih_gm_survival
 execute if entity @s[gamemode=creative] run tag @s add ybih_gm_creative
 execute if entity @s[gamemode=adventure] run tag @s add ybih_gm_adventure
+
+# 入队就是参赛的一方，观战身份连同那份夜视在这里立刻作废：夜视是发给围观者的，
+# 不能让人带着它下场。player/buff_guard 也会在「有凭据但不再是旁观」时兜一次，
+# 但那是每秒一轮，这里收掉才不留空窗
+execute if entity @s[tag=ybih_spect_nv] run effect clear @s minecraft:night_vision
+tag @s remove ybih_spect_nv
 
 gamemode adventure @s

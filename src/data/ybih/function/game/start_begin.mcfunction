@@ -5,6 +5,10 @@ function ybih:util/cleanup_all
 # 本局编号：跨局遗留在世界里的旧按钮标记靠它区分，不会被当成本局按钮
 scoreboard players add #era ybih.config 1
 scoreboard players set #next_id ybih.config 1
+# 上一局的超时欠账与藏匿编号一并作废：编号每局从 1 重发，
+# 留着旧欠账会让新局里恰好抽到同一编号的人被误扣
+scoreboard players set #hide_id ybih.config 0
+scoreboard players set #hide_owed ybih.config 0
 scoreboard players set #round ybih.config 1
 scoreboard players set #cycle ybih.config 1
 scoreboard players set @a ybih.score 0

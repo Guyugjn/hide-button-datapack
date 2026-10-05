@@ -17,16 +17,22 @@ team leave @a
 tag @a remove ybih_show_owner
 # 恢复游戏模式：只处理「当前是旁观」的人 —— 围观把参与者切成了旁观，
 # 只有这类人才需要还原。无脑按标签恢复会误伤：一个入队时是创造的人，
-# 局中自己切回了冒险，标签却还留着，点重置就会把他莫名拽回创造
+# 局中自己切回了冒险，标签却还留着，点重置就会把他莫名拽回创造。
+# 三条都带 gamemode=spectator 前置，先命中的那条会把玩家切出旁观、后面的不再命中，
+# 所以「身上至多只有一个 ybih_gm_*」是这里正确性的前提，靠执行顺序盖不掉叠加
 execute as @a[gamemode=spectator,tag=ybih_gm_creative] run gamemode creative @s
 execute as @a[gamemode=spectator,tag=ybih_gm_survival] run gamemode survival @s
-# 没参与这局的人（中途进服、没经过 join_game）身上没有 ybih_gm_* 标签，
-# 却也可能是被围观顺手切成的旁观，兜底给他们冒险模式
-execute as @a[gamemode=spectator,tag=!ybih_gm_creative,tag=!ybih_gm_survival] run gamemode adventure @s
+# 落到冒险的只能是「入队时本来就是冒险」的人；够不到任何一条的人是旁观者，
+# 保持旁观不动 —— 这里不猜他的模式，也不替他做决定
+execute as @a[gamemode=spectator,tag=ybih_gm_adventure] run gamemode adventure @s
 effect clear @a[tag=ybih_current] minecraft:night_vision
 # 围观发出去的夜视也要一并撤
 effect clear @a[tag=ybih_show_nv] minecraft:night_vision
 tag @a remove ybih_show_nv
+# 观战夜视同理：player/spectate 发的，player/buff_guard 会一直按凭据续期，
+# 重置就得连凭据一起收掉，否则它会跨存档一直亮着
+effect clear @a[tag=ybih_spect_nv] minecraft:night_vision
+tag @a remove ybih_spect_nv
 scoreboard players set @a ybih.score 0
 scoreboard players reset * ybih.board
 scoreboard players set @a ybih.placed 0

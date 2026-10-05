@@ -30,7 +30,7 @@ import {
   pageLines,
   textWidth,
 } from '../src/manifest.mjs';
-import { BLOCK_SINCE, versionAtLeast } from '../src/block_versions.mjs';
+import { BLOCK_SINCE, sinceOf, versionAtLeast } from '../src/block_versions.mjs';
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const SRC = join(ROOT, 'src');
@@ -178,16 +178,32 @@ function genTagFace(pack) {
 // 待确认的按钮（ybih_pending）不参与：那个位置玩家还没点确认，可能正要去取消重放。
 // 保护机制插手会把方块摆回来、并开始累加 ybih.fixed，数到上限就把待确认标记
 // 当成「保不住的按钮」直接收回、还通知物主被水冲毁了 —— 而这一切都发生在确认之前
+// 遍历只做一次：全场实体遍历是全库最贵的操作，性能契约限定每 tick 至多一次。
+// 逐按钮的三条判定搬进 protect_scan，由这一行的 run 逐实体调用 —— 实体是顺序求值的，
+// 依次作用在同一个 @s 上与原来三行各遍历一遍的结果完全一致，代价降到三分之一
 function genProtectCheck(pack) {
   const scan =
     'execute as @e[type=armor_stand,tag=ybih_button,tag=!ybih_pending] if score @s ybih.era = #era ybih.config at @s';
   return [
-    '# ybih:button/protect_check —— 位置上没有按钮的才交给 protect_restore（只处理本局登记的标记）',
-    '# 同一位置反复被破坏说明它保不住，数到上限就收回它，免得一直复制按钮物品',
+    '# ybih:button/protect_check —— 位置上没有按钮的交给 protect_scan（只处理本局登记的标记）',
+    '# 全场遍历在这里只做一次，逐按钮的分派在 protect_scan 里',
     '',
-    `${scan} unless block ~ ~ ~ #minecraft:buttons run scoreboard players add @s ybih.fixed 1`,
-    `${scan} if score @s ybih.fixed matches ..3 unless block ~ ~ ~ #minecraft:buttons run function ybih:button/protect_restore`,
-    `${scan} if score @s ybih.fixed matches 4.. unless block ~ ~ ~ #minecraft:buttons run function ybih:button/give_up`,
+    `${scan} unless block ~ ~ ~ #minecraft:buttons run function ybih:button/protect_scan`,
+    '',
+  ].join('\n');
+}
+
+// protect_scan：以按钮标记为执行者，由 protect_check 的遍历逐个调用。
+// 外层已经筛过「本局登记、且位置上确实没有按钮」，这里只做记数与分派。
+// 顺序与阈值都不能动：先记一次丢失，再按互斥且穷尽的两档分派 ——
+// 数到 4 次就说明这个位置保不住，交给 give_up 收回，免得一直复制按钮物品
+function genProtectScan(pack) {
+  return [
+    '# ybih:button/protect_scan —— 以按钮标记为执行者：累计丢失次数，按次数分派还原或放弃',
+    '',
+    'scoreboard players add @s ybih.fixed 1',
+    'execute if score @s ybih.fixed matches ..3 run function ybih:button/protect_restore',
+    'execute if score @s ybih.fixed matches 4.. run function ybih:button/give_up',
     '',
   ].join('\n');
 }
@@ -244,17 +260,17 @@ function showcaseKey(tag) {
 
 function genShowcaseView(pack) {
   const lines = [
-    '# ybih:game/showcase_view —— 把参与者放进按钮那一格，视线对准按钮面板',
+    '# ybih:game/showcase_view —— 把围观接管的人放进按钮那一格，视线对准按钮面板',
     '# 执行者是待展示按钮的标记实体：位置一律本格中心，只有朝向分派视线角度',
-    '# 传送目标限定参与者：与 showcase_end 的清理口径保持一致，',
-    '# 否则围观期间重连或中途进服的人会被拖到展示点，却不在任何清理与恢复的范围内',
+    '# 传送目标限定 ybih_show_nv：showcase_start 与 showcase_state 给「本轮被围观接管过的人」',
+    '# 打的就是这个标记，showcase_end 也按它回收夜视 —— 传送范围与清理口径同源，不会漏人',
     '',
   ];
   const tags = [];
   for (const f of BUTTON_FACINGS) {
     const [yaw, pitch] = SHOWCASE_AIMS[showcaseKey(f.tag)];
     lines.push(
-      `execute if entity @s[tag=${f.tag}] at @s run tp @a[tag=ybih_player] ~ ~-1 ~ ${yaw} ${pitch}`,
+      `execute if entity @s[tag=${f.tag}] at @s run tp @a[tag=ybih_show_nv] ~ ~-1 ~ ${yaw} ${pitch}`,
     );
     tags.push(f.tag);
   }
@@ -262,7 +278,7 @@ function genShowcaseView(pack) {
   // 照原样原地待着，至少标题和 Boss 栏照常报进度。这条兜底不带位置偏移，
   // 因为它本来就不确定站在哪，硬挪反而可能把人塞进地形里
   const noneMatched = tags.map((t) => `unless entity @s[tag=${t}]`).join(' ');
-  lines.push(`execute at @s ${noneMatched} run tp @a[tag=ybih_player] ~ ~ ~`);
+  lines.push(`execute at @s ${noneMatched} run tp @a[tag=ybih_show_nv] ~ ~ ~`);
   return lines.join('\n') + '\n';
 }
 
@@ -272,19 +288,20 @@ function genShowcaseView(pack) {
 // 只用位置参数、**不带角度** —— 带上角度会连玩家的视角一起锁死，转不了头看周围。
 function genShowcasePin(pack) {
   const lines = [
-    '# ybih:game/showcase_pin —— 定格期间把参与者按回站位，只设位置、不设角度',
+    '# ybih:game/showcase_pin —— 定格期间把围观接管的人按回站位，只设位置、不设角度',
     '# 执行者是待展示按钮的标记实体；玩家在定格期间仍然可以自由转视角',
-    '# 传送目标与 showcase_view 一致，只作用于参与者',
+    '# 传送目标与 showcase_view 严格同源（ybih_show_nv）：两处只要有一处对不上，',
+    '# 被传过来的人下一 tick 就不会被按回站位，站着站着就飘走了',
     '',
   ];
   const tags = [];
   for (const f of BUTTON_FACINGS) {
-    lines.push(`execute if entity @s[tag=${f.tag}] at @s run tp @a[tag=ybih_player] ~ ~-1 ~`);
+    lines.push(`execute if entity @s[tag=${f.tag}] at @s run tp @a[tag=ybih_show_nv] ~ ~-1 ~`);
     tags.push(f.tag);
   }
   // 与 showcase_view 同样的兜底：一条朝向都没命中时留在原地，不硬挪
   const noneMatched = tags.map((t) => `unless entity @s[tag=${t}]`).join(' ');
-  lines.push(`execute at @s ${noneMatched} run tp @a[tag=ybih_player] ~ ~ ~`);
+  lines.push(`execute at @s ${noneMatched} run tp @a[tag=ybih_show_nv] ~ ~ ~`);
   return lines.join('\n') + '\n';
 }
 
@@ -332,8 +349,10 @@ function genPlaceableSurfaces(pack) {
     const isObject = typeof entry === 'object' && entry !== null;
     const id = isObject ? entry.id : entry;
     // 方块 ID 要按版本过滤；跨版本标签（#minecraft:mineable/* 之类）保留 required 写法
+    // 这里查不到就照写（默认 1.16），由 validate 那边报错 —— 两个默认值刻意拆开，
+    // 免得同一条错误逻辑把自己验证通过
     if (!id.startsWith('#')) {
-      const since = BLOCK_SINCE[id] ?? '1.16';
+      const since = sinceOf(id) ?? '1.16';
       if (!versionAtLeast(pack.minVersion, since)) continue;
     }
     out.push(entry);
@@ -394,6 +413,7 @@ const GENERATED = {
   'data/ybih/function/button/press_scan.mcfunction': genPressScan,
   'data/ybih/function/button/hit_bit.mcfunction': genHitBit,
   'data/ybih/function/button/protect_check.mcfunction': genProtectCheck,
+  'data/ybih/function/button/protect_scan.mcfunction': genProtectScan,
   'data/ybih/function/button/protect_restore.mcfunction': genProtectRestore,
   'data/ybih/function/button/refund_pending.mcfunction': genRefundPending,
   'data/ybih/function/admin/book.mcfunction': genAdminBook,
@@ -518,35 +538,191 @@ function buildPack(pack) {
 
 // 扫描引号字符串里的非法转义：字符串按 Brigadier 的规则只接受 \" \' \\ 三种；
 // 1.21.5 起组件写在 SNBT 里，SNBT 还认 \n \t \b \f \r \x \u 这些转义
+//
+// 一次从左到右的扫描，遇到引号就成对推进，并记住当前处在哪种引号里。
+// 不能像早先那样「对 " 与 ' 各扫一遍、互不知道对方」：文案里的撇号
+// （英文所有格、缩写）会被第二遍当成单引号串的开头，一路扫到下一个撇号，
+// 途中合法的 \" 就被判成非法转义。实测 `…don't…a\"b…` 会误报。
 function findBadEscapes(line, snbt) {
   const extra = snbt ? ['n', 't', 'b', 'f', 'r', 'x', 'u'] : [];
   const bad = [];
-  for (const quote of ['"', "'"]) {
-    let i = 0;
-    while (i < line.length) {
-      if (line[i] !== quote) {
-        i++;
+  let i = 0;
+  while (i < line.length) {
+    const quote = line[i];
+    if (quote !== '"' && quote !== "'") {
+      i++;
+      continue;
+    }
+    // 进入一个字符串：一直走到同种引号的收尾。
+    // 合法转义就是上面那三种（外加 SNBT 的 \n \t 等），与开引号是哪种无关 ——
+    // 判定放宽到「不是这三种」才报错，宁可漏报也不误报：这是构建闸门，
+    // 挡住一次合法构建的代价远大于放过一个真转义错误
+    let j = i + 1;
+    while (j < line.length && line[j] !== quote) {
+      if (line[j] === '\\') {
+        const next = line[j + 1];
+        const legal = next === '"' || next === "'" || next === '\\' || extra.includes(next);
+        if (!legal) bad.push(`\\${next}`);
+        j += 2;
         continue;
       }
-      let j = i + 1;
-      while (j < line.length && line[j] !== quote) {
-        if (line[j] === '\\') {
-          const next = line[j + 1];
-          if (next !== quote && next !== '\\' && !extra.includes(next)) bad.push(`\\${next}`);
-          j += 2;
-          continue;
-        }
-        j++;
-      }
-      i = j + 1;
+      j++;
     }
+    i = j + 1;
   }
   return bad;
+}
+
+// 把一行里的字符串字面量抹成空格，只留下命令语法本身。
+// 校验都是正则驱动的，而 tellraw 的文案是散文：里面有 if / unless / forceload
+// 这类词就会被当成命令语法，既误报（构建直接失败）又掩盖真问题。
+// 双引号与单引号都要认（1.21.5 起组件写在 SNBT 里，用的是单引号），
+// 反斜杠转义要跳过，且只在行内配对 —— 一行里落单的引号不该吃到别的行。
+// 字符串区间整段换成空格，既避免把两侧的 token 粘起来造出假 token，
+// 又保证结果与原文逐字符同长，需要时可按同一位置回原文取参数
+function stripStringLiterals(line) {
+  const chars = line.split('');
+  let i = 0;
+  while (i < chars.length) {
+    const quote = chars[i];
+    if (quote !== '"' && quote !== "'") {
+      i++;
+      continue;
+    }
+    // 先确认行内有同类闭引号：落单的引号不当作字符串起点，
+    // 否则它会把后面的命令一并抹掉，反倒制造漏检
+    let closed = -1;
+    for (let j = i + 1; j < chars.length; j++) {
+      if (chars[j] === '\\') {
+        j++;
+        continue;
+      }
+      if (chars[j] === quote) {
+        closed = j;
+        break;
+      }
+    }
+    if (closed < 0) {
+      i++;
+      continue;
+    }
+    for (let j = i; j <= closed; j++) chars[j] = ' ';
+    i = closed + 1;
+  }
+  return chars.join('');
+}
+
+// 切出一行里所有配对的 {...} 片段，字符串里的花括号不参与配对。
+// clickEvent / click_event 的键序与冒号后的空格都不固定（JSON 与 SNBT 两套写法并存），
+// 靠写死顺序的正则去抓 run_command 的命令值会漏掉等价写法，所以先切对象再逐字段读
+function objectSlices(line) {
+  const out = [];
+  const opened = [];
+  let quote = null;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (quote) {
+      if (ch === '\\') i++;
+      else if (ch === quote) quote = null;
+      continue;
+    }
+    if (ch === '"' || ch === "'") quote = ch;
+    else if (ch === '{') opened.push(i);
+    else if (ch === '}' && opened.length > 0) out.push(line.slice(opened.pop(), i + 1));
+  }
+  return out;
+}
+
+// 读出一个对象片段里的「引号键: 引号值」对。值只取字符串形态，
+// 嵌套对象与数组不进这张表（它们另有自己的片段）
+function readStringFields(obj) {
+  const fields = {};
+  const re = /(["'])([A-Za-z_][A-Za-z0-9_]*)\1\s*:\s*(["'])((?:\\.|(?!\3)[^\\])*)\3/g;
+  for (const m of obj.matchAll(re)) fields[m[2]] = m[4].replace(/\\(.)/g, '$1');
+  return fields;
+}
+
+// 一个坐标：可写绝对数（0 / 12.5 / -3），也可带相对或局部前缀（~ ~1 ~-3 ^2）
+const COORD_RE = /^(?:[~^]-?(?:\d+(?:\.\d+)?|\.\d+)?|-?(?:\d+(?:\.\d+)?|\.\d+))$/;
+
+// 命令后面跟着的一串参数（到行尾为止），按空白切开。
+// 用来做与写法无关的按个数判定 —— 把空格数、相对坐标的具体写法写死进正则，
+// 正是缺陷 7 里 forceload 检查「该拦的漏、不该拦的误报」的根源
+function commandArgs(code, cmd) {
+  const m = new RegExp(`(?:^|\\s)${cmd}(?=\\s|$)([\\s\\S]*)$`).exec(code);
+  return m ? m[1].split(/\s+/).filter(Boolean) : [];
+}
+
+// 剥掉字符串后每一列的花括号嵌套深度。用来区分「命令的真参数块」与「那条命令载荷里的 NBT」：
+// 原版标签只该在命令自身的参数里引用；NBT 里的标签名由解析器当字符串处理，
+// 不查白名单、游戏也照常工作，混在一起查会把好好的行判成错误
+function codeBraceDepth(code) {
+  const depth = new Array(code.length).fill(0);
+  let cur = 0;
+  for (let i = 0; i < code.length; i++) {
+    if (code[i] === '}') cur = Math.max(0, cur - 1);
+    depth[i] = cur;
+    if (code[i] === '{') cur++;
+  }
+  return depth;
+}
+
+// 音效 id 白名单。playsound 的音效是「直接引用」而不是注册表查询：
+// 写错一个字符既不报错也不影响函数加载，只是什么声音都不放 —— 全库 13 处
+// playsound 里有 1 处把 block.stone_button.click_on 写成了 click_on_block，
+// 静默无声就是这么来的。id 的 minecraft: 前缀可以省略，两边写法都合法
+const KNOWN_SOUND_IDS = new Set([
+  'block.beacon.activate',
+  'block.note_block.bass',
+  'block.stone_button.click_on',
+  'entity.player.levelup',
+  'ui.button.click',
+]);
+
+// 原版标签引用白名单。命令与进度 JSON 两条路径共用：
+// 命令里引用不存在的标签是解析错误，整行不执行；进度里的标签写错则不报错，
+// 只是条件永远不匹配 —— 两种都只写日志、不进聊天栏，只能在这里拦住。
+// 命令这一侧走剥离后的文本，并要求引用点不在「命令载荷的花括号」里面：
+// NBT 里的标签名按字符串处理，不受白名单约束，混进来会把好好的行判成错误
+function checkVanillaTags(rel, text, errors, isCommand, lineNo = 0, depth = null) {
+  const where = isCommand ? `${rel}:${lineNo}` : rel;
+  for (const m of text.matchAll(/#minecraft:([a-z0-9_/]+)/g)) {
+    if (isCommand && depth !== null && depth[m.index] > 0) continue;
+    if (!KNOWN_VANILLA_TAGS.has(m[1])) {
+      errors.push(`引用了未登记的原版标签 #minecraft:${m[1]} 于 ${where}`);
+    }
+  }
+}
+
+// 最高支持版本是否早于某个版本。版本串形态不合格时只报「读不出上限」，
+// 不在这里重复报警，也不把拿不准的情况当成通过
+function maxVersionLowerThan(maxVersion, bound) {
+  if (maxVersion === null || maxVersion === undefined) return false;
+  return !versionAtLeast(maxVersion, bound);
+}
+
+// 包的版本上限。label 形如「1.16.2 – 1.20.4」，破折号右边就是上限。
+// 核对进度条件的版本配对时上限与下限缺一不可：item_used_on_block 是
+// 「上限早于 1.20.5 才有」，只看下限会把包 1 里那份完全合法的旧进度判成过期
+function packMaxVersion(pack, errors) {
+  const parts = String(pack.label ?? '').split(/[–—−-]/);
+  const last = parts[parts.length - 1].trim();
+  if (!/^\d+(?:\.\d+)*$/.test(last)) {
+    errors.push(
+      `包 ${pack.id} 的 label「${pack.label}」里读不出最高支持版本，无法核对进度条件的版本配对`,
+    );
+    return null;
+  }
+  return last;
 }
 
 // 按版本才有的命令与子命令。用在低于其引入版本的包里会让整行解析失败，
 // 而函数加载失败只写进日志、不进聊天栏，进游戏只会看到「什么都没发生」。
 // 键是命令特征的匹配式，值是它开始存在的版本。
+//
+// 选择器参数（tag / scores / gamemode / limit / distance / sort）不在这里：
+// 它们全部是 1.13 就有的，而三个包的下限是 1.16.2 / 1.20.5 / 1.21.5，
+// 写进去也永远触发不了 —— 空转的 guard 只会让人误以为「这个参数受版本保护」。
 const VERSION_GATED = [
   { re: /\brun return\b|^\s*return\b/, since: '1.20.2', what: '/return' },
   { re: /\bexecute\s+if\s+items\b/, since: '1.20.5', what: 'execute if items' },
@@ -556,7 +732,6 @@ const VERSION_GATED = [
   { re: /\bexecute\s+if\s+dimension\b/, since: '1.19', what: 'execute if dimension' },
   { re: /\bdata\s+modify\b/, since: '1.20.2', what: '/data modify' },
   { re: /\brandom\s+value\b/, since: '1.20.2', what: '/random' },
-  { re: /@[aespr]\w*\[[^\]]*\blimit\s*=/, since: '1.16', what: '选择器 limit 参数' },
 ];
 
 // 命令里能引用的原版标签白名单。引用不存在的标签会让 Brigadier 解析失败，
@@ -592,6 +767,7 @@ const EXECUTE_CONDITIONS = new Set([
 function validate(packDir, pack) {
   const errors = [];
   const files = walk(packDir);
+  const maxVersion = packMaxVersion(pack, errors);
 
   for (const f of files) {
     const rel = relative(packDir, f).split(sep).join('/');
@@ -606,25 +782,43 @@ function validate(packDir, pack) {
       // 表现成「按下去毫无反应」，比语法错误难查得多。
       // 1.20 起 location 必须是谓词数组（每个元素带 condition），写成裸对象就是死条件；
       // 但 1.16.2–1.19.4 那边 location 本来就是裸对象，所以下限早于 1.20 的包放行对象写法。
-      // 判定按包的下限走，而不是按「看起来像什么」——否则两种写法都像对的
-      const legacyLocOk = !versionAtLeast(pack.minVersion, '1.20');
+      // 判定按「触发器与 location 形态的配对」走，而不是按包下限恒真：
+      //   · item_used_on_block 是 1.20.5 起被 any_block_use 取代的老触发器，
+      //     只允许落在最高支持版本早于 1.20.5 的包里（本仓库就是包 1，它一直到 1.20.4 都要认这份旧语法）；
+      //   · any_block_use 是 1.20.5 起才有的新触发器，只允许落在最低支持版本不早于 1.20.5 的包里。
+      // 裸对象形态的 location 在 1.20.x 客户端是被接受的（包 1 在 1.20.4 实测通过），
+      // 所以只有「包 2/3 用老触发器 + 裸对象」和「包 1 用新触发器」这两种组合该拦
       if (parsed && rel.includes('advancement')) {
         for (const [name, crit] of Object.entries(parsed.criteria ?? {})) {
           const loc = crit?.conditions?.location;
           if (loc === undefined) continue;
-          if (!Array.isArray(loc)) {
-            if (
-              legacyLocOk &&
-              typeof loc === 'object' &&
-              loc !== null &&
-              loc.block !== undefined
-            ) {
-              continue; // 1.20 之前的合法写法
-            }
+          const trigger =
+            typeof crit.trigger === 'string'
+              ? crit.trigger.replace(/^minecraft:/, '')
+              : null;
+          if (trigger === 'item_used_on_block' && !maxVersionLowerThan(maxVersion, '1.20.5')) {
             errors.push(
-              `进度条件 location 必须是谓词数组（写成裸对象会导致条件永不匹配）于 ${rel} 的 ${name}`,
+              `进度触发器 item_used_on_block 是 1.20.5 前的老写法，本包最高支持版本 ${maxVersion ?? '未知'} 已不再接受它 于 ${rel} 的 ${name}`,
             );
-            continue;
+          }
+          if (trigger === 'any_block_use' && !versionAtLeast(pack.minVersion, '1.20.5')) {
+            errors.push(
+              `进度触发器 any_block_use 是 1.20.5 起才有的，本包下限 ${pack.minVersion} 用不了 于 ${rel} 的 ${name}`,
+            );
+          }
+          if (!Array.isArray(loc)) {
+            if (trigger !== 'item_used_on_block') {
+              errors.push(
+                `进度条件 location 必须是谓词数组（写成裸对象会导致条件永不匹配）于 ${rel} 的 ${name}`,
+              );
+              continue;
+            }
+            if (typeof loc !== 'object' || loc === null || loc.block === undefined) {
+              errors.push(
+                `进度条件 location 写成裸对象时必须是含 block 字段的对象 于 ${rel} 的 ${name}`,
+              );
+            }
+            continue; // 裸对象形态由触发器这一层把关，见上面
           }
           for (const [i, entry] of loc.entries()) {
             if (typeof entry !== 'object' || entry === null || typeof entry.condition !== 'string') {
@@ -633,6 +827,9 @@ function validate(packDir, pack) {
           }
         }
       }
+      // 原版标签白名单对进度里的条件同样适用：进度里的标签写错不会让进度解析失败，
+      // 只是条件永远不匹配，比命令那边更隐蔽
+      if (parsed) checkVanillaTags(rel, JSON.stringify(parsed), errors, false);
     }
     const text = readFileSync(f, 'utf8');
     const ph = text.match(/\{\{[A-Z0-9_]+\}\}/);
@@ -647,43 +844,74 @@ function validate(packDir, pack) {
         if (bad.length) {
           errors.push(`非法转义 ${[...new Set(bad)].join(' ')} 于 ${rel}:${lineNo}`);
         }
-        if (/forceload\s+add\s+~\s+~\s+~/.test(line)) {
-          errors.push(`forceload 参数过多（只要 x z 两个坐标）于 ${rel}:${lineNo}`);
-        }
-        // 点击执行的命令必须带 / 前缀，否则客户端拒绝执行
-        // 只查 run_command 自己的那个字段，change_page 的 value 是页号，不能混进来
-        for (const m of line.matchAll(/"action":"run_command","value":"([^"]*)"/g)) {
-          if (!m[1].startsWith('/')) {
-            errors.push(`clickEvent 命令缺少 / 前缀 于 ${rel}:${lineNo}`);
+        // 语法类检查一律跑在剥离字符串字面量之后的文本上：
+        // 文案里出现 if / unless / forceload 这类词不该被当成命令语法
+        const code = stripStringLiterals(line);
+        const depth = codeBraceDepth(code);
+        const args = commandArgs(code, 'forceload');
+        if (args.length > 0) {
+          if (args[0] === 'all' || args[0] === 'remove' || args[0] === 'add') {
+            const rest = args.slice(1);
+            const removeAll = args[0] === 'remove' && rest.length === 1 && rest[0] === 'all';
+            const coords = removeAll ? 0 : rest.length;
+            if (!removeAll && coords % 2 !== 0) {
+              errors.push(`forceload 的坐标必须成对（2 个或 4 个），这里有 ${coords} 个 于 ${rel}:${lineNo}`);
+            }
+            if (!removeAll && rest.some((a) => !COORD_RE.test(a))) {
+              errors.push(`forceload 的参数里有不是坐标的：${rest.join(' ')} 于 ${rel}:${lineNo}`);
+            }
+          } else {
+            errors.push(
+              `forceload 只接受 add / remove（remove 可以带 all），这里是 ${args[0]} 于 ${rel}:${lineNo}`,
+            );
           }
         }
-        for (const m of line.matchAll(/action:'run_command',command:'([^']*)'/g)) {
-          if (!m[1].startsWith('/')) {
+        // 点击执行的命令必须带 / 前缀，否则客户端拒绝执行。
+        // clickEvent 的键序与冒号后的空格都不固定（JSON 与 SNBT 两套写法并存），
+        // 所以先切出对象片段再逐字段读，而不是把顺序写死进正则
+        for (const obj of objectSlices(line)) {
+          const fields = readStringFields(obj);
+          const action = (fields.action ?? '').replace(/^minecraft:/, '');
+          if (action !== 'run_command') continue;
+          const cmd = fields.value ?? fields.command;
+          if (typeof cmd !== 'string') continue;
+          // 值本身一定以 / 开头，客户端才肯执行；行内可能多一层反斜杠转义
+          if (!cmd.replace(/^\s+/, '').startsWith('/')) {
             errors.push(`clickEvent 命令缺少 / 前缀 于 ${rel}:${lineNo}`);
           }
         }
         // if score / unless score 的比较对象必须是分数持有者：写 `if score A obj < 2` 会整行解析失败
-        if (/\b(?:if|unless) score \S+ \S+ *(?:<=|>=|<|>|=) *-?\d/.test(line)) {
+        if (/\b(?:if|unless) score \S+ \S+ *(?:<=|>=|<|>|=) *-?\d/.test(code)) {
           errors.push(`if score 不能直接和数字比较，要用 matches 区间 于 ${rel}:${lineNo}`);
         }
         // /execute 的条件子命令只有固定那几个，写错名字整行都解析不了。
         // 尤其容易顺手写成 `if team` / `if gamemode` —— 没有这两种条件
-        for (const m of line.matchAll(/\b(?:if|unless) ([a-z_]+)/g)) {
+        for (const m of code.matchAll(/\b(?:if|unless) ([a-z_]+)/g)) {
           if (!EXECUTE_CONDITIONS.has(m[1])) {
             errors.push(`/execute 没有 if/unless ${m[1]} 这种条件 于 ${rel}:${lineNo}`);
           }
         }
         // 方块状态里的 face/facing 拼写
-        if (/\[face=[^,\]]+,/.test(line) && !/face=(floor|ceiling|wall),facing=(north|south|east|west)/.test(line)) {
+        if (
+          /\[face=[^,\]]+,/.test(code) &&
+          !/face=(floor|ceiling|wall),facing=(north|south|east|west)/.test(code)
+        ) {
           errors.push(`方块状态 face/facing 组合可疑 于 ${rel}:${lineNo}`);
         }
-        // 原版标签引用必须存在，否则整条命令连带整个函数都不加载
-        for (const m of line.matchAll(/#(minecraft:[a-z0-9_/]+)/g)) {
-          if (!KNOWN_VANILLA_TAGS.has(m[1].slice('minecraft:'.length))) {
-            errors.push(`引用了未登记的原版标签 #${m[1]} 于 ${rel}:${lineNo}`);
+        // playsound 的音效 id 直接按名字查表，写错只会静默无声，只能靠白名单兜住
+        const soundArgs = commandArgs(code, 'playsound');
+        if (soundArgs.length > 0) {
+          const id = (soundArgs[0] ?? '').replace(/^minecraft:/, '');
+          if (!KNOWN_SOUND_IDS.has(id)) {
+            errors.push(`playsound 引用了未登记的音效 ${soundArgs[0]} 于 ${rel}:${lineNo}`);
           }
         }
-        // 按版本才有的命令不能出现在低于其引入版本的包里
+        // 原版标签引用必须存在，否则整条命令连带整个函数都不加载
+        checkVanillaTags(rel, code, errors, true, lineNo, depth);
+        // 按版本才有的命令不能出现在低于其引入版本的包里。
+        // 这一组留在原文上判定：它们的特征里带版本号 / 参数这类也是字符串形态的东西
+        // （例如 limit 用的是记分板），剥掉字符串就会漏检，而句子里的散文命中时
+        // 恰好只在「上限早于门槛」的包里有后果 —— 1.16 那条门槛比三个包的下限都低，永远不触发
         for (const gate of VERSION_GATED) {
           if (gate.re.test(line) && !versionAtLeast(pack.minVersion, gate.since)) {
             errors.push(
@@ -714,6 +942,31 @@ function validate(packDir, pack) {
     const text = readFileSync(f, 'utf8');
     for (const m of text.matchAll(/\bfunction\s+(ybih:[a-z0-9_/]+)/gi)) {
       if (!defined.has(m[1])) errors.push(`引用不存在的函数 ${m[1]} 于 ${rel}`);
+    }
+  }
+
+  // 进度奖励引用的函数。这类引用写错同样只写日志：运行时才报「未知函数」，
+  // 表现成「进度触发了但什么也没发生」，比命令里写错更难查 —— 只查 .mcfunction
+  // 会把这份引用整片漏掉
+  for (const f of files) {
+    if (!f.endsWith('.json')) continue;
+    const rel = relative(packDir, f).split(sep).join('/');
+    let parsed = null;
+    try {
+      parsed = JSON.parse(readFileSync(f, 'utf8'));
+    } catch {
+      continue; // JSON 非法已在上面报过
+    }
+    const targets = [
+      ['rewards.function', parsed?.rewards?.function],
+      ['rewards.functions', parsed?.rewards?.functions],
+    ];
+    for (const [where, value] of targets) {
+      // rewards.function 是单个字符串，rewards.functions 是字符串数组，两种都收
+      for (const v of Array.isArray(value) ? value : [value]) {
+        if (typeof v !== 'string' || !v.startsWith('ybih:')) continue;
+        if (!defined.has(v)) errors.push(`${where} 引用了不存在的函数 ${v} 于 ${rel}`);
+      }
     }
   }
 
@@ -770,8 +1023,15 @@ function validate(packDir, pack) {
         continue;
       }
       if (!id.startsWith('#')) {
-        const since = BLOCK_SINCE[id] ?? '1.16';
-        if (!versionAtLeast(pack.minVersion, since)) {
+        const since = sinceOf(id);
+        // 查不到 = 忘了登记。不能默认放行：生成过滤器用的是同一个默认值，
+        // 两边同源就永远查不出来，1.17+ 的新方块会静默进到面向 1.16.2 的包 1 里
+        if (since === null) {
+          errors.push(
+            `白名单里的方块 ${id} 不在 src/block_versions.mjs 的 BLOCK_SINCE 里，` +
+              `请先登记它从哪个版本开始存在（${rel}）`,
+          );
+        } else if (!versionAtLeast(pack.minVersion, since)) {
           errors.push(
             `白名单引用了 ${pack.minVersion} 还不存在的方块 ${id}（${since} 起加入）于 ${rel}`,
           );
@@ -999,8 +1259,19 @@ for (const pack of PACKS) {
   } else {
     failed = true;
     rmSync(dir, { recursive: true, force: true });
+    // 校验不通过的包不留下任何产物：只删暂存目录的话，dist/ 里会留着上一代同名 zip，
+    // 而它看起来和别的新产物一模一样 —— 人工扫一眼 dist/ 会以为三个包都构建成功了。
+    // 只删自己这一份，另外两个构建成功的包照常保留
+    const zipPath = join(DIST, `${pack.id}.zip`);
+    const hadStaleZip = existsSync(zipPath);
+    rmSync(zipPath, { force: true });
     console.log(`  ✗ ${pack.id}  ${pack.label}  ${count} 个文件`);
     for (const e of errors) console.log(`      - ${e}`);
+    console.log(
+      hadStaleZip
+        ? `      → ${pack.id}.zip 是上一次构建的旧产物，已一并删除`
+        : `      → 本包没有产出 ${pack.id}.zip`,
+    );
   }
 }
 

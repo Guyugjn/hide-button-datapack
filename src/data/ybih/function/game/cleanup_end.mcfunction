@@ -17,14 +17,20 @@ tag @a remove ybih_show_owner
 # 围观发出去的夜视与它的标记一起收掉，免得跨局残留
 effect clear @a[tag=ybih_show_nv] minecraft:night_vision
 tag @a remove ybih_show_nv
+# 观战夜视（player/spectate 发的，凭据 ybih_spect_nv）也在整局结束时回收：
+# player/buff_guard 会按凭据一直续期，不在这里收就跨局跨存档一直亮着。
+# 它只由 player/spectate 发出、入队时（player/join_game）会失效，不会落到参赛者身上
+effect clear @a[tag=ybih_spect_nv] minecraft:night_vision
+tag @a remove ybih_spect_nv
 # 恢复游戏模式：只处理「当前是旁观」的人 —— 围观把参与者切成了旁观，
 # 只有这类人才需要还原。无脑按标签恢复会误伤：一个入队时是创造的人，
 # 局中自己切回了冒险，标签却还留着，就会被莫名拽回创造
 execute as @a[gamemode=spectator,tag=ybih_gm_creative] run gamemode creative @s
 execute as @a[gamemode=spectator,tag=ybih_gm_survival] run gamemode survival @s
-# 没参与这局的人（中途进服、没经过 join_game）身上没有 ybih_gm_* 标签，
-# 却也可能是被围观顺手切成的旁观，兜底给他们冒险模式
-execute as @a[gamemode=spectator,tag=!ybih_gm_creative,tag=!ybih_gm_survival] run gamemode adventure @s
+# 落到冒险的只能是「入队时本来就是冒险」的人。三条都带 gamemode=spectator 前置，
+# 先命中的那条会把玩家切出旁观、后面的不再命中，所以「身上至多只有一个 ybih_gm_*」
+# 是这里正确性的前提。够不到任何一条的人是旁观者，保持旁观不动
+execute as @a[gamemode=spectator,tag=ybih_gm_adventure] run gamemode adventure @s
 tag @a remove ybih_player
 tag @a remove ybih_current
 tag @a remove ybih_top
