@@ -24,4 +24,10 @@ execute as @a[tag=ybih_player,scores={ybih.used=1..}] if score @s ybih.used >= #
 
 execute if entity @a[tag=ybih_user] as @a[tag=ybih_user,limit=1,sort=nearest] run function ybih:button/press_claim
 
+# 自检之「射线没锁到按钮」：进度已经确认有人对着按钮交互过（ybih.used 落在时间窗内），
+# 却没有一个人的 ybih.used_bid 被写上（仍是 0）—— 说明 on_use_trace 跑了，但射线
+# 一个本局按钮标记都没探到，归属比对必然落空，这次按下不计分、也没有任何提示。
+# 只在「确实有人交互过、且没人被认领」时触发，所以纯红石/箭矢打亮的按钮不会误报
+execute if entity @a[tag=ybih_player,scores={ybih.used=1..}] unless entity @a[tag=ybih_user] as @a[tag=ybih_player,scores={ybih.used=1..,ybih.used_bid=0},limit=1,sort=nearest] if score @s ybih.used >= #use_min ybih.config run tellraw @s {{TXT_S}}这次按下没算数：没能在视线方向上锁定到按钮标记，请把按钮放在更容易点到的位置，或检查它是否已被拿完{{TXT_M}}red{{TXT_E}}
+
 tag @a remove ybih_user

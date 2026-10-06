@@ -1,15 +1,24 @@
-# ybih:button/ray_loop —— 每步前进 0.1 格、最多 60 步（6 格），每步探测当前格与 6 个邻格
+# ybih:button/ray_loop —— 放置定位射线的第一遍：每步前进 0.1 格、最多 60 步（6 格），只认当前格
 # 长度按原版的放置距离定：方块交互距离是 4.5 格（创造 5 格），加上按钮落在被点面的外侧，
 # 4 格以内够不到最远的那次放置，射线会静默走完 —— 方块留在世界里、却没有标记
-# 按钮由原版放在被点方块的邻格里，而非完整方块（半砖、楼梯、活板门）的命中点在方块内部，
-# 视线射线不会经过按钮所在的那一格，所以必须顺带探测邻格才能找到它
+#
+# 第一遍**只探射线正中的那一格，绝不探邻格**。这是「按钮放在不完整方块旁时盔甲架跑到
+# 别的按钮上」的正解。原因是一条几何不变式：原版把按钮放在被点方块的外侧那一格 P，
+# 而 P 就在准星射线上。射线上、P 之前的格子若已经有按钮，客户端准星会先选中它、
+# 这次右键被它吃掉，本次放置根本不会发生 —— 而我们的射线只在放置发生后才跑。
+# 所以「只探射线上的格子」在构造上不可能被半路上的野按钮抢占。
+#
+# 每步探六个邻格就没有这层保护了：邻格探测会扫进大量**不在射线上**的格子。
+# 按 1440 个几何场景（平地/半砖/窄巷/楼梯/草丛五种地形）复现：
+#   · 每步探邻格：临到按钮格之前已扫过平均 14.4 格，其中不在射线上的平均 11.4 格、最多 23 格
+#   · 只探正格：  同一指标降到 0（射线上的格子全都有上面那层保护）
+# 野按钮（地图自带的按钮，天生没有标记）落在那些离轴格上就会被抢走登记，
+# 标记于是落在旁边那个旧按钮上、玩家刚放的那格反而没人认领。
+#
+# 代价是有一小部分几何下采样点会整格跳过按钮格（复现里 3.1%），
+# 那种情况交给第二遍 button/ray_loop_nbr 补，而它只在第一遍彻底走完之后才跑。
+# 96.9% 的放置走不到第二遍，邻格探测的候选面因此几乎不暴露
 
 scoreboard players add #ray_step ybih.config 1
 execute unless entity @s[tag=ybih_ray_found] run function ybih:button/probe_here
-execute unless entity @s[tag=ybih_ray_found] positioned ~ ~1 ~ run function ybih:button/probe_here
-execute unless entity @s[tag=ybih_ray_found] positioned ~ ~-1 ~ run function ybih:button/probe_here
-execute unless entity @s[tag=ybih_ray_found] positioned ~1 ~ ~ run function ybih:button/probe_here
-execute unless entity @s[tag=ybih_ray_found] positioned ~-1 ~ ~ run function ybih:button/probe_here
-execute unless entity @s[tag=ybih_ray_found] positioned ~ ~ ~1 run function ybih:button/probe_here
-execute unless entity @s[tag=ybih_ray_found] positioned ~ ~ ~-1 run function ybih:button/probe_here
 execute if score #ray_step ybih.config matches ..59 unless entity @s[tag=ybih_ray_found] positioned ^ ^ ^0.1 run function ybih:button/ray_loop

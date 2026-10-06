@@ -1,10 +1,8 @@
 # ybih:game/reload_cleanup —— /reload 时清空对局数据，集合点与设置保留
 
+# 围观展示卡在半途时留在世界里的按钮，cleanup_all 里已经先扫方块再收标记，
+# 这里不再重复 —— 那条清扫必须早于任何 kill，写在这一行后面就已经太晚了
 function ybih:util/cleanup_all
-# 围观展示可能正卡在半途，留在世界里的按钮要一并收掉。
-# 区块强加载已在上面 cleanup_all 里按 ybih_pinned 释放过，这里不重复
-execute as @e[tag=ybih_showcase] at @s if block ~ ~ ~ #minecraft:buttons run setblock ~ ~ ~ air
-kill @e[tag=ybih_showcase]
 # 全员回集合点，必须排在拆等待室之前：可能还有人被关在里面
 execute if entity @e[tag=ybih_center] as @a run tp @s @e[tag=ybih_center,limit=1]
 function ybih:util/remove_wait_room

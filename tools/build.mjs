@@ -55,8 +55,49 @@ function writeFileDeep(target, content) {
 // ── 动态生成的文件 ───────────────────────────────────────────────
 
 function genGiveButtons(pack) {
-  const lines = ['# ybih:player/give_buttons —— 发放按钮（每种材质一个）', ''];
+  const lines = [
+    '# ybih:player/give_buttons —— 发放按钮（每种材质一个）',
+    '#',
+    '# 一、先清掉身上残留的按钮。上一轮没用掉的那一个、以及取消重放退回来的那一个，',
+    '#     都会留在背包里；不清干净就会出现「手上有两个按钮、只藏了一个」这种情况。',
+    '#     更麻烦的是残留会让玩家误判自己已经藏过，而场上少一个按钮，轮末计数也跟着错。',
+    '#',
+    '# 二、发放。背包塞满时 give 会把放不下的那几种丢在脚边，装备栏里一个都没多，',
+    '#     玩家看到的却是「发了但没收到」，于是以为插件坏了。发完必须专门探一次脚边，',
+    '#     命中就明说背包满了 —— 这是唯一能让玩家自己判断该怎么做的信号，不能省。',
+    '',
+    'clear @s #minecraft:buttons',
+    '',
+    '# 发之前先把脚边**旧**的按钮掉落物收掉。少了这一步，玩家很久以前随手丢在脚下的按钮',
+    '# 会被当成这次的溢出，凭空报一次「背包满了」。范围取 1.5 格，只够覆盖脚下这一圈。',
+  ];
+  for (const m of pack.materials) {
+    lines.push(
+      `kill @e[type=item,distance=..1.5,nbt={Item:{id:"${MATERIAL_TO_BLOCK(m)}"}}]`,
+    );
+  }
+  lines.push('');
   for (const m of pack.materials) lines.push(`give @s ${pack.give(m)} 1`);
+  lines.push('');
+  lines.push('# 只按 Item.id 这个字符串匹配，不碰 Age 之类的数值字段：');
+  lines.push('# NBT 数值在匹配时要求标签类型一致，而 Age 存的是 short，写 Age:0 会被解析成 int，');
+  lines.push('# 类型对不上就永远匹配不到 —— 那样这条检测会静默失效，比不写还糟。');
+  lines.push('# 1.20.5 改过物品堆叠的序列化（Count→count、tag→components），但 Item.id 两层都一样，');
+  lines.push('# 所以这条选择器在本包支持的整个版本区间内都成立');
+  for (const m of pack.materials) {
+    lines.push(
+      `execute as @e[type=item,distance=..1.5,nbt={Item:{id:"${MATERIAL_TO_BLOCK(m)}"}}] run tag @s add ybih_overflow`,
+    );
+  }
+  lines.push('');
+  lines.push(
+    'execute if entity @e[tag=ybih_overflow] run tellraw @s {{TXT_S}}你的背包放不下全部按钮，多出来的已经掉在脚边，捡起来就能接着藏{{TXT_M}}red{{TXT_E}}',
+  );
+  lines.push(
+    'execute if entity @e[tag=ybih_overflow] run playsound minecraft:block.note_block.bass player @s ~ ~ ~ 1 0.8',
+  );
+  lines.push('# 用完就摘掉：这个标记只服务于上面那次提示，留在掉落物上会被下一处误读');
+  lines.push('tag @e[tag=ybih_overflow] remove ybih_overflow');
   return lines.join('\n') + '\n';
 }
 
@@ -786,8 +827,14 @@ function validate(packDir, pack) {
       //   · item_used_on_block 是 1.20.5 起被 any_block_use 取代的老触发器，
       //     只允许落在最高支持版本早于 1.20.5 的包里（本仓库就是包 1，它一直到 1.20.4 都要认这份旧语法）；
       //   · any_block_use 是 1.20.5 起才有的新触发器，只允许落在最低支持版本不早于 1.20.5 的包里。
-      // 裸对象形态的 location 在 1.20.x 客户端是被接受的（包 1 在 1.20.4 实测通过），
-      // 所以只有「包 2/3 用老触发器 + 裸对象」和「包 1 用新触发器」这两种组合该拦
+      // 裸对象形态的 location 只在 1.20（23w18a）之前合法 —— 那次改动把 placed_block /
+      // item_used_on_block / allay_drop_item_on_block 的 location 一并收成了谓词数组，
+      // 分界线是 1.20 而不是 1.20.5（1.20.5 换的只是触发器名字）。
+      // 包 1 横跨这条线：它在 1.16.2–1.19.4 要认裸对象、在 1.20–1.20.4 要认数组，
+      // 所以 button_used_legacy.json 在包 1 覆盖的 1.20+ 上必然解析失败（只写日志、
+      // 不影响另一份加载），这是为了让一份产物覆盖两端而付出的代价。
+      // 因此裸对象只准出现在 *_legacy.json 里，别处出现就是漏改的真缺陷；
+      // 而包 2/3 的下限在 1.20 之后，两份都该用数组。
       if (parsed && rel.includes('advancement')) {
         for (const [name, crit] of Object.entries(parsed.criteria ?? {})) {
           const loc = crit?.conditions?.location;
@@ -807,18 +854,30 @@ function validate(packDir, pack) {
             );
           }
           if (!Array.isArray(loc)) {
-            if (trigger !== 'item_used_on_block') {
+            // 裸对象的合法性只取决于「本包认不认 1.20 之前的写法」，与触发器无关。
+            // 文件名以 _legacy 结尾的那份就是专门给 1.16.2–1.19.4 用的，
+            // 它在包 1 里是必需的（在 1.20+ 上解析失败属于既定代价，见上面的说明）；
+            // 包 2/3 的 skipFiles 已经把它摘掉，若还能走到这里说明 skipFiles 被人改坏了。
+            // 反过来，裸对象出现在非 _legacy 的进度里就是漏改 —— 那种进度在 1.20+ 上
+            // 结构不合法、整份作废，表现成「按下去毫无反应」。
+            const isLegacyFile = /_legacy\.json$/.test(rel);
+            if (!isLegacyFile) {
               errors.push(
-                `进度条件 location 必须是谓词数组（写成裸对象会导致条件永不匹配）于 ${rel} 的 ${name}`,
+                `进度条件 location 必须是谓词数组（1.20 起 location 收成数组；只有 *_legacy.json 才允许裸对象）于 ${rel} 的 ${name}`,
               );
               continue;
+            }
+            if (versionAtLeast(pack.minVersion, '1.20')) {
+              errors.push(
+                `包 ${pack.id} 的下限 ${pack.minVersion} 已在 1.20 之后，不再需要 *_legacy.json 于 ${rel}`,
+              );
             }
             if (typeof loc !== 'object' || loc === null || loc.block === undefined) {
               errors.push(
                 `进度条件 location 写成裸对象时必须是含 block 字段的对象 于 ${rel} 的 ${name}`,
               );
             }
-            continue; // 裸对象形态由触发器这一层把关，见上面
+            continue;
           }
           for (const [i, entry] of loc.entries()) {
             if (typeof entry !== 'object' || entry === null || typeof entry.condition !== 'string') {
@@ -890,6 +949,21 @@ function validate(packDir, pack) {
           if (!EXECUTE_CONDITIONS.has(m[1])) {
             errors.push(`/execute 没有 if/unless ${m[1]} 这种条件 于 ${rel}:${lineNo}`);
           }
+        }
+        // at / as / positioned / anchored 这些只是 /execute 的修饰子命令，单独一行
+        // 写出来会被当成一条名叫 at（as、positioned…）的命令，整行解析失败。
+        // 本条正是为了兜住 button/on_use_trace 那次事故：重构时把一行 execute 拆成
+        // 单独的函数，末行漏掉了开头的 execute，只留下 `at @s anchored eyes run ...`。
+        // 它让整个函数不加载，而函数加载失败只写进日志、不进聊天栏，
+        // 进游戏显示为「按钮有动画有音效，但不加分也没有任何提示」，
+        // 与「射线没锁到按钮」的表现一模一样，排查代价极高。构建期拦下最省事。
+        // 这些词都没有同名命令，所以行首出现必然是漏了 execute
+        const head = code.trimStart();
+        const bareExec = head.match(/^(at|as|positioned|anchored|facing|rotated|align|in|on|store|run|if|unless)\s/);
+        if (bareExec) {
+          errors.push(
+            `行首的 ${bareExec[1]} 是 /execute 的修饰子命令，缺少开头的 execute（整行会解析失败、整个函数不加载）于 ${rel}:${lineNo}`,
+          );
         }
         // 方块状态里的 face/facing 拼写
         if (

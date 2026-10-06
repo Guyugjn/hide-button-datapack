@@ -9,6 +9,9 @@ ybih_test_checklist.txt
 ybih_design_doc.md
 ybih_memory.md
 
+# 旧版数据包备份：替换 dist 产物前留的档，便于回退，仅本地保留。
+backup/
+
 # 编辑器与系统
 .vscode/
 .idea/

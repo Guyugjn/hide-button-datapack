@@ -4,11 +4,9 @@ function ybih:game/cleanup_buttons
 # 全员回集合点集合。这一步必须排在拆等待室之前：按中止时可能还有人被关在里面，
 # 先抽掉地板再传送就成了自由落体
 execute if entity @e[tag=ybih_center] as @a run tp @s @e[tag=ybih_center,limit=1]
-# 围观展示是临时把按钮留在世界里的，方块要在这里兜底收掉。
-# 区块强加载已在 cleanup_buttons → cleanup_all 里按 ybih_pinned 释放过，
-# 这里不重复：同一个区块被 add 两次而只 remove 一次会留下泄漏
-execute as @e[tag=ybih_showcase] at @s if block ~ ~ ~ #minecraft:buttons run setblock ~ ~ ~ air
-kill @e[tag=ybih_showcase]
+# 围观展示是临时把按钮留在世界里的，方块由上面 cleanup_buttons → cleanup_all 兜底收掉：
+# 那条清扫先扫方块、再释放 ybih_pinned、最后才 kill 标记，顺序在这里重放不出来，
+# 也不再重复 —— 同一个区块被 add 两次而只 remove 一次会留下泄漏
 # 高亮与队伍要到下一局之前撤干净：标记已经 kill，光会随实体消失，
 # 但玩家身上的发光、队伍身份、物主标签都留着，要在清标签之前撤
 effect clear @a minecraft:glowing
