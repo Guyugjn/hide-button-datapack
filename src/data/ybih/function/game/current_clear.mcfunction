@@ -10,7 +10,10 @@
 # player/buff_guard 的 ybih_spect_nv 分支），补不回来
 #
 # 由 player/buff_guard 在凭据不成立时每秒调用一次（判据见那里）
-# 凭据一撤，player/active_state 下一 tick 就会把这位参与者拉回冒险模式
+#
+# 摘凭据**不再**意味着「下一 tick 会有人把他拉回冒险」：每 tick 的游戏模式强推已经取消，
+# 模式只在关键节点强制。所以这里的调用方要自己保证收尾：
+# 轮流模式的藏匿者本轮结束时由 game/cleanup_buttons 按 ybih_gm_* 记录还原
 
 execute unless entity @s[tag=ybih_show_nv] unless entity @s[tag=ybih_spect_nv] run effect clear @s minecraft:night_vision
 tag @s remove ybih_current

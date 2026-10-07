@@ -720,6 +720,11 @@ const KNOWN_SOUND_IDS = new Set([
   'ui.button.click',
 ]);
 
+// 粒子 id 白名单，与音效同理：粒子的通道名也是按名字查表，
+// 写错既不报错也不影响函数加载，只是这一条静默什么都不显示。
+// 跨 1.16–26.2 只用 1.13 起就存在的几种，别用后来才加的
+const KNOWN_PARTICLE_IDS = new Set(['end_rod', 'flame', 'happy_villager']);
+
 // 原版标签引用白名单。命令与进度 JSON 两条路径共用：
 // 命令里引用不存在的标签是解析错误，整行不执行；进度里的标签写错则不报错，
 // 只是条件永远不匹配 —— 两种都只写日志、不进聊天栏，只能在这里拦住。
@@ -943,6 +948,12 @@ function validate(packDir, pack) {
         if (/\b(?:if|unless) score \S+ \S+ *(?:<=|>=|<|>|=) *-?\d/.test(code)) {
           errors.push(`if score 不能直接和数字比较，要用 matches 区间 于 ${rel}:${lineNo}`);
         }
+        // matches 形式只收「一个目标 + 一个记分板」：`if score @s ybih.win matches 3..`。
+        // 多写一个记分板（顺手把比较形式的两个记分板也带上）是解析错误，
+        // 后果与漏 execute 同级：整份函数静默不加载，只往日志写一行 Whilst parsing command。
+        if (/\b(?:if|unless) score \S+ \S+ \S+ matches\b/.test(code)) {
+          errors.push(`if score 的 matches 形式只收一个目标加一个记分板，多写了一个 于 ${rel}:${lineNo}`);
+        }
         // /execute 的条件子命令只有固定那几个，写错名字整行都解析不了。
         // 尤其容易顺手写成 `if team` / `if gamemode` —— 没有这两种条件
         for (const m of code.matchAll(/\b(?:if|unless) ([a-z_]+)/g)) {
@@ -978,6 +989,14 @@ function validate(packDir, pack) {
           const id = (soundArgs[0] ?? '').replace(/^minecraft:/, '');
           if (!KNOWN_SOUND_IDS.has(id)) {
             errors.push(`playsound 引用了未登记的音效 ${soundArgs[0]} 于 ${rel}:${lineNo}`);
+          }
+        }
+        // 粒子同理：通道名写错不会报错，只是什么都看不见
+        const particleArgs = commandArgs(code, 'particle');
+        if (particleArgs.length > 0) {
+          const id = (particleArgs[0] ?? '').replace(/^minecraft:/, '');
+          if (!KNOWN_PARTICLE_IDS.has(id)) {
+            errors.push(`particle 引用了未登记的粒子 ${particleArgs[0]} 于 ${rel}:${lineNo}`);
           }
         }
         // 原版标签引用必须存在，否则整条命令连带整个函数都不加载
@@ -1111,6 +1130,52 @@ function validate(packDir, pack) {
           );
         }
       }
+    }
+  }
+
+  // 「需要支撑」的方块不能往空气里铺：地毯、花草、铁轨这类方块下面没有实心方块时
+  // 会被瞬间崩掉，而 fill 依然报「成功」、函数也不报错，方块却一个不剩。
+  // 等待室是悬在天上的，一旦地板换成这类方块而忘了垫层，整间房就没地板，
+  // turn/gather 的守卫也永远过不去（等待者只留在集合点，且毫无提示）。
+  // 这条校验只覆盖等待室：它是本包里唯一一处「悬空铺装饰方块」的地方
+  const NEEDS_SUPPORT = /(?:carpet|_rail|_sapling|flower_pot|sunflower|dandelion|poppy|torch)$/;
+  const roomLines = readFunc('util/build_wait_room.mcfunction').split('\n');
+  // fill 的坐标形如 ~-6 ~-1 ~-6 ~6 ~-1 ~6：两端 y 都必须是 ~-1，才算是地板垫层
+  const isFoundationFill = (line) => {
+    if (!/\brun fill\b/.test(line)) return false;
+    const m = line.match(/\brun fill\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s/);
+    if (!m) return false;
+    return m[2] === '~-1' && m[5] === '~-1';
+  };
+  const firstDecor = roomLines.findIndex((l) => /\brun fill\b/.test(l) && NEEDS_SUPPORT.test(l.trim()));
+  if (firstDecor !== -1) {
+    const foundation = roomLines.findIndex((l, i) => i < firstDecor && isFoundationFill(l));
+    if (foundation === -1) {
+      errors.push(
+        '等待室地板用了「需要支撑」的方块（如地毯），但基准层下面没有垫层：' +
+          '悬空铺地毯会被瞬间崩掉，fill 仍报成功，整间房会没有地板。' +
+          '请在铺地毯之前先 fill 一层 y=~-1 的实心方块（见 util/build_wait_room）',
+      );
+    }
+  }
+
+  // 拆等待室要分两条、且地基那条在最后：fill 内部自下而上执行，一条 ~-1..~8 会先抽掉
+  // 地毯的地基，地毯随之崩成掉落物（实测 69 个）从 245 的高空摔到地面。
+  // 这条守卫盯的是「同一条 fill 同时覆盖 ~-1 与基准层及以上」
+  const rmLines = readFunc('util/remove_wait_room.mcfunction').split('\n');
+  const yRange = (line) => {
+    const m = line.match(/\brun fill\s+\S+\s+(\S+)\s+\S+\s+\S+\s+(\S+)\s+\S+\s/);
+    return m ? [m[1], m[2]] : null;
+  };
+  for (const line of rmLines) {
+    const r = yRange(line);
+    if (!r) continue;
+    if (r[0] === '~-1' && /^~\d/.test(r[1])) {
+      errors.push(
+        'util/remove_wait_room 用一条 fill 同时拆了地毯地基（~-1）与基准层及以上：' +
+          'fill 内部自下而上，会先抽掉地基，地毯当场崩成掉落物掉一地。' +
+          '请拆成两条，先 fill ~..~8 收地毯与房子，最后再单独收 ~-1 的地基',
+      );
     }
   }
 

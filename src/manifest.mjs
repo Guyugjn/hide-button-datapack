@@ -57,6 +57,15 @@ export const TEXT_JSON = {
     '{"text":"【确认】","color":"green","clickEvent":{"action":"run_command","value":"/trigger ybih.trigger set 1"}}',
   BTN_REDO:
     '{"text":"【取消重放】","color":"red","clickEvent":{"action":"run_command","value":"/trigger ybih.trigger set 2"}}',
+  // 等待室猜拳用的三个点击入口：11 石头 / 12 剪刀 / 13 布
+  BTN_RPS_ROCK:
+    '{"text":"【石头】","color":"white","clickEvent":{"action":"run_command","value":"/trigger ybih.trigger set 11"}}',
+  BTN_RPS_SCISSORS:
+    '{"text":"【剪刀】","color":"yellow","clickEvent":{"action":"run_command","value":"/trigger ybih.trigger set 12"}}',
+  BTN_RPS_PAPER:
+    '{"text":"【布】","color":"aqua","clickEvent":{"action":"run_command","value":"/trigger ybih.trigger set 13"}}',
+  SCORE_MYRANK: '{"score":{"name":"#my_rank","objective":"ybih.config"}}',
+  SCORE_RPSWIN: '{"score":{"name":"@s","objective":"ybih.rps_win"}}',
 };
 
 export const TEXT_SNBT = {
@@ -95,6 +104,15 @@ export const TEXT_SNBT = {
     "{text:'【确认】',color:'green',click_event:{action:'run_command',command:'/trigger ybih.trigger set 1'}}",
   BTN_REDO:
     "{text:'【取消重放】',color:'red',click_event:{action:'run_command',command:'/trigger ybih.trigger set 2'}}",
+  // 等待室猜拳用的三个点击入口：11 石头 / 12 剪刀 / 13 布
+  BTN_RPS_ROCK:
+    "{text:'【石头】',color:'white',click_event:{action:'run_command',command:'/trigger ybih.trigger set 11'}}",
+  BTN_RPS_SCISSORS:
+    "{text:'【剪刀】',color:'yellow',click_event:{action:'run_command',command:'/trigger ybih.trigger set 12'}}",
+  BTN_RPS_PAPER:
+    "{text:'【布】',color:'aqua',click_event:{action:'run_command',command:'/trigger ybih.trigger set 13'}}",
+  SCORE_MYRANK: "{score:{name:'#my_rank',objective:'ybih.config'}}",
+  SCORE_RPSWIN: "{score:{name:'@s',objective:'ybih.rps_win'}}",
 };
 
 // 物品语法：legacy=NBT，componentA=1.20.5 组件谓词数组，componentB=1.21.5 组件谓词单元素

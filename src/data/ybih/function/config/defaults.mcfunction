@@ -138,3 +138,13 @@ scoreboard players set #c100 ybih.config 100
 scoreboard players set #c2 ybih.config 2
 # 求最小值时的哨兵：比任何真实编号都大
 scoreboard players set #c_max ybih.config 2147483647
+# 等待室：粒子节拍（2 秒一次）、猜拳取模用的 3
+scoreboard players set #room_timer ybih.config 0
+scoreboard players set #c3 ybih.config 3
+# 猜拳结算的暂存：每次出拳递增的种子、算出来的对手那一手、胜负差
+scoreboard players set #rps_seed ybih.config 0
+scoreboard players set #rps_ai ybih.config 0
+scoreboard players set #rps_diff ybih.config 0
+# 等待信息栏的暂存：自己的编号，以及数出来的队列位次
+scoreboard players set #my_id ybih.config 0
+scoreboard players set #my_rank ybih.config 1

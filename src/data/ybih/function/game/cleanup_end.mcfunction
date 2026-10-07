@@ -40,10 +40,16 @@ tag @a remove ybih_ray_found
 tag @a remove ybih_gm_survival
 tag @a remove ybih_gm_creative
 tag @a remove ybih_gm_adventure
+# 「已按旁观接管过」的一次性凭据属于本局：留着它，下一局中途进服的人
+# 就不再被接管成旁观，player/active_state 会以为他早被处理过
+tag @a remove ybih_spec_once
 scoreboard players set @a ybih.trigger 0
 scoreboard players set @a ybih.id 0
 scoreboard players set @a ybih.used -1
 scoreboard players set @a ybih.used_bid 0
+# 等待室的猜拳连胜属于本局，整局结束时清掉，下一局不会带着上一局的战绩进门
+scoreboard players set @a ybih.rps_win 0
+scoreboard players set #room_timer ybih.config 0
 scoreboard players set #state ybih.config 0
 scoreboard players set #timer ybih.config 0
 scoreboard players set #round ybih.config 0

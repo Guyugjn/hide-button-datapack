@@ -11,6 +11,8 @@ scoreboard players set @s ybih.t_first 999999
 scoreboard players set @s ybih.trigger 0
 scoreboard players set @s ybih.used -1
 scoreboard players set @s ybih.used_bid 0
+# 等待室的猜拳连胜不跨局累积：每局入队时从零开始
+scoreboard players set @s ybih.rps_win 0
 
 # 先无条件撤掉三个标签，保证身上至多只剩一个；这一步不能省 —— 恢复点的三条命令
 # 都带 gamemode=spectator 前置，先命中的那条会把玩家切出旁观，后面的就再也不命中，
@@ -27,5 +29,8 @@ execute if entity @s[gamemode=adventure] run tag @s add ybih_gm_adventure
 # 但那是每秒一轮，这里收掉才不留空窗
 execute if entity @s[tag=ybih_spect_nv] run effect clear @s minecraft:night_vision
 tag @s remove ybih_spect_nv
+# 入队就是参赛的一方，「已经按旁观接管过」这条一次性凭据一并作废：
+# 留着它，他这一局就不再被当非参赛者处理，下一局也仍认得出他是参赛者
+tag @s remove ybih_spec_once
 
 gamemode adventure @s

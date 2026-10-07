@@ -1,7 +1,10 @@
 # ybih:player/spectate —— 转为旁观：记下原模式、发一份带凭据的观战夜视、传送到中心点
-# 只由 player/active_state:11 调用，执行者一定是「当前不是旁观」的在线非参赛者：
+# 由 player/active_state:22 调用，执行者一定是「当前不是旁观」的在线非参赛者：
 # 服主自己 /gamemode spectator 的观战身份走不到这里，程序不接管它，也不改写它 ——
 # 那份身份原样留到对局结束，收尾点没有他的记录，也不替他做决定
+#
+# 只在「还没接管过」时调用一次：调用方用 ybih_spec_once 把关。
+# 这个人之后自己切回生存模式，数据包不再把他拽回旁观 —— 中途换模式由他自己负责
 #
 # 原模式必须在这里记：这一刻他还没被切成旁观，记下的才是真实模式。
 # 收尾点（game/showcase_end 与三个收尾点）按记录还原之后，game/next_round
@@ -24,5 +27,7 @@ execute if entity @s[gamemode=adventure] run tag @s add ybih_gm_adventure
 gamemode spectator @s
 effect give @s minecraft:night_vision 60 0 true
 tag @s add ybih_spect_nv
+# 一次性凭据：active_state 靠它认出「已经接管过」，不再每 tick 重推
+tag @s add ybih_spec_once
 execute if entity @e[tag=ybih_center] run tp @s @e[tag=ybih_center,limit=1]
 tellraw @s {{TXT_S}}你以旁观身份观看本局{{TXT_M}}gray{{TXT_E}}

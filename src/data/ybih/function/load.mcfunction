@@ -29,6 +29,9 @@ scoreboard objectives add ybih.value dummy
 scoreboard objectives add ybih.hit dummy
 # 侧边栏看的是镜像榜：真实分数在 ybih.score，这里只放当前在线的人
 scoreboard objectives add ybih.board dummy
+# 等待室猜拳：出的那一手（0 石头 / 1 剪刀 / 2 布）与当前连胜场数
+scoreboard objectives add ybih.rps_choice dummy
+scoreboard objectives add ybih.rps_win dummy
 
 # 围观高亮用：发光轮廓的颜色取自队伍，红=分被拿完、绿=还有分。
 # 队伍只装标记与「正被展示的那个按钮的物主」，其余玩家一律不进队。

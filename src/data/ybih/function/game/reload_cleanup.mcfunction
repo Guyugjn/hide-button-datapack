@@ -41,6 +41,8 @@ tag @a remove ybih_ray_found
 tag @a remove ybih_gm_survival
 tag @a remove ybih_gm_creative
 tag @a remove ybih_gm_adventure
+# 「已按旁观接管过」的一次性凭据属于本局，reload 一并作废
+tag @a remove ybih_spec_once
 scoreboard players set @a ybih.score 0
 scoreboard players reset * ybih.board
 execute as @a[tag=ybih_buffed] run function ybih:player/clear_buff
@@ -53,6 +55,8 @@ scoreboard players set @a ybih.t_first 999999
 scoreboard players set @a ybih.trigger 0
 scoreboard players set @a ybih.used -1
 scoreboard players set @a ybih.used_bid 0
+scoreboard players set @a ybih.rps_win 0
+scoreboard players set #room_timer ybih.config 0
 scoreboard players set #state ybih.config 0
 scoreboard players set #timer ybih.config 0
 scoreboard players set #round ybih.config 0

@@ -19,3 +19,7 @@ execute if score #state ybih.config matches 1..3 run function ybih:game/bar_upda
 
 # 搜寻阶段别把重连回来的人关在等待室里
 execute if score #state ybih.config matches 3 as @a[tag=ybih_player,tag=!ybih_current] run function ybih:player/leave_room
+
+# 等待室：刷房里那几行的信息栏、按节拍撒粒子。只有藏匿阶段房里才有人；
+# 房内没人时 room/second_tick 自带的两条守卫会落空，不进任何遍历
+execute if score #state ybih.config matches 2 run function ybih:room/second_tick

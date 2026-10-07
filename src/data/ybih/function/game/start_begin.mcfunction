@@ -23,6 +23,10 @@ tag @a remove ybih_player
 tag @a remove ybih_current
 tag @a remove ybih_top
 tag @a remove ybih_ranked
+# 开新局：「已按旁观接管过」的凭据全部作废，这一局中途进服的人重新按旁观接管一次。
+# 不在这里清，上一局留下的凭据会让新局里进来的人不再被接管（他多半也不在意，
+# 只是行为与文档不一致），且这份凭据会一直挂在存档里
+tag @a remove ybih_spec_once
 
 execute as @a[gamemode=!spectator] run function ybih:player/join_game
 execute as @a[tag=!ybih_player] run scoreboard players set @s ybih.id 0
