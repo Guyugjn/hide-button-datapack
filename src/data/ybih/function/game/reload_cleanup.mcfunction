@@ -55,7 +55,7 @@ scoreboard players set @a ybih.t_first 999999
 scoreboard players set @a ybih.trigger 0
 scoreboard players set @a ybih.used -1
 scoreboard players set @a ybih.used_bid 0
-scoreboard players set @a ybih.rps_win 0
+function ybih:room/ttt_reset
 scoreboard players set #room_timer ybih.config 0
 scoreboard players set #state ybih.config 0
 scoreboard players set #timer ybih.config 0

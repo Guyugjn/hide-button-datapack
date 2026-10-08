@@ -29,9 +29,27 @@ scoreboard objectives add ybih.value dummy
 scoreboard objectives add ybih.hit dummy
 # 侧边栏看的是镜像榜：真实分数在 ybih.score，这里只放当前在线的人
 scoreboard objectives add ybih.board dummy
-# 等待室猜拳：出的那一手（0 石头 / 1 剪刀 / 2 布）与当前连胜场数
-scoreboard objectives add ybih.rps_choice dummy
-scoreboard objectives add ybih.rps_win dummy
+# 等待室九宫格棋的棋盘与暂存。棋盘跟着人走：每个人的九格、角色、对局状态都在自己身上，
+# 所以同一份函数同时服务任意多局，能开几局只看房里有多少人
+scoreboard objectives add ybih.ttt dummy
+scoreboard objectives add ybih.tstate dummy
+scoreboard objectives add ybih.trole dummy
+scoreboard objectives add ybih.topp dummy
+scoreboard objectives add ybih.topps dummy
+scoreboard objectives add ybih.tturn dummy
+scoreboard objectives add ybih.tres dummy
+scoreboard objectives add ybih.tfirst dummy
+scoreboard objectives add ybih.told dummy
+scoreboard objectives add ybih.rseat dummy
+scoreboard objectives add ybih.t1 dummy
+scoreboard objectives add ybih.t2 dummy
+scoreboard objectives add ybih.t3 dummy
+scoreboard objectives add ybih.t4 dummy
+scoreboard objectives add ybih.t5 dummy
+scoreboard objectives add ybih.t6 dummy
+scoreboard objectives add ybih.t7 dummy
+scoreboard objectives add ybih.t8 dummy
+scoreboard objectives add ybih.t9 dummy
 
 # 围观高亮用：发光轮廓的颜色取自队伍，红=分被拿完、绿=还有分。
 # 队伍只装标记与「正被展示的那个按钮的物主」，其余玩家一律不进队。

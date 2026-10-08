@@ -47,8 +47,10 @@ scoreboard players set @a ybih.trigger 0
 scoreboard players set @a ybih.id 0
 scoreboard players set @a ybih.used -1
 scoreboard players set @a ybih.used_bid 0
-# 等待室的猜拳连胜属于本局，整局结束时清掉，下一局不会带着上一局的战绩进门
-scoreboard players set @a ybih.rps_win 0
+# 等待室的棋局属于本局，整局结束时清掉，下一局不会带着上一局的残局开门
+# 棋子书本身不收回：凭据 ybih_ttt_booked 一直挂着，反复进出等待室不会越攒越多，
+# 而书已经拿到手上的人下一局还能直接翻。收回书就会与这份凭据脱节
+function ybih:room/ttt_reset
 scoreboard players set #room_timer ybih.config 0
 scoreboard players set #state ybih.config 0
 scoreboard players set #timer ybih.config 0

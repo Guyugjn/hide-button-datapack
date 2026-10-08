@@ -1,5 +1,9 @@
 # ybih:game/enter_searching_run —— 搜寻阶段初始化
 
+# 藏匿阶段一结束，等待室里的棋局就没有意义了：棋盘作废、位子让出来，
+# 人随后会被 enter_searching_* 送回集合点，残局不会跟着进搜寻阶段
+function ybih:room/ttt_reset
+
 scoreboard players set #state ybih.config 3
 scoreboard players operation #timer ybih.config = #search_time ybih.config
 scoreboard players operation #hint_timer ybih.config = #hint_period ybih.config

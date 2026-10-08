@@ -2,6 +2,8 @@
 # 轮流模式一轮只有一人藏，所以一局总轮数 = 周期数 × 参与人数
 
 function ybih:util/cleanup_all
+# 上一局可能有人还坐在等待室的桌上，开新局先把棋局整个归零
+function ybih:room/ttt_reset
 # 本局编号：跨局遗留在世界里的旧按钮标记靠它区分，不会被当成本局按钮
 scoreboard players add #era ybih.config 1
 scoreboard players set #next_id ybih.config 1

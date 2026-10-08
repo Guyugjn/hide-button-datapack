@@ -11,8 +11,10 @@ scoreboard players set @s ybih.t_first 999999
 scoreboard players set @s ybih.trigger 0
 scoreboard players set @s ybih.used -1
 scoreboard players set @s ybih.used_bid 0
-# 等待室的猜拳连胜不跨局累积：每局入队时从零开始
-scoreboard players set @s ybih.rps_win 0
+# 入队的人不再下等待室的棋：把身上那一局清干净（ttt_abort 会连对手一起收），
+# 名单位也交回去 —— 他这一局都在场上，不该再占着名单上的位子
+function ybih:room/ttt_abort
+scoreboard players set @s ybih.rseat 0
 
 # 先无条件撤掉三个标签，保证身上至多只剩一个；这一步不能省 —— 恢复点的三条命令
 # 都带 gamemode=spectator 前置，先命中的那条会把玩家切出旁观，后面的就再也不命中，

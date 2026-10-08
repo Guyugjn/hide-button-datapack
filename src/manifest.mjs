@@ -1,4 +1,4 @@
-// ybih 数据包构建配置：定义 3 个分版本包的差异
+﻿// ybih 数据包构建配置：定义 3 个分版本包的差异
 // 运行 node tools/build.mjs 生成 dist/ 下的产物
 
 import { HINT_RADII } from './book.mjs';
@@ -57,15 +57,33 @@ export const TEXT_JSON = {
     '{"text":"【确认】","color":"green","clickEvent":{"action":"run_command","value":"/trigger ybih.trigger set 1"}}',
   BTN_REDO:
     '{"text":"【取消重放】","color":"red","clickEvent":{"action":"run_command","value":"/trigger ybih.trigger set 2"}}',
-  // 等待室猜拳用的三个点击入口：11 石头 / 12 剪刀 / 13 布
-  BTN_RPS_ROCK:
-    '{"text":"【石头】","color":"white","clickEvent":{"action":"run_command","value":"/trigger ybih.trigger set 11"}}',
-  BTN_RPS_SCISSORS:
-    '{"text":"【剪刀】","color":"yellow","clickEvent":{"action":"run_command","value":"/trigger ybih.trigger set 12"}}',
-  BTN_RPS_PAPER:
-    '{"text":"【布】","color":"aqua","clickEvent":{"action":"run_command","value":"/trigger ybih.trigger set 13"}}',
+  // 等待室的常驻入口：11 刷新名单 / 12 离座 / 13 重贴棋盘
+  BTN_TTT_REFRESH:
+    '{"text":"【刷新名单】","color":"gold","clickEvent":{"action":"run_command","value":"/trigger ybih.trigger set 11"}}',
+  BTN_TTT_LEAVE:
+    '{"text":"【离座】","color":"dark_red","clickEvent":{"action":"run_command","value":"/trigger ybih.trigger set 12"}}',
+  BTN_TTT_BOARD:
+    '{"text":"【看棋盘】","color":"dark_purple","clickEvent":{"action":"run_command","value":"/trigger ybih.trigger set 13"}}',
+  // 邀请流程的四步：同意 / 拒绝 / 取消自己发出的邀请 / 原地再来一局
+  BTN_TTT_ACCEPT:
+    '{"text":"【同意】","color":"green","clickEvent":{"action":"run_command","value":"/trigger ybih.trigger set 29"}}',
+  BTN_TTT_DECLINE:
+    '{"text":"【拒绝】","color":"red","clickEvent":{"action":"run_command","value":"/trigger ybih.trigger set 30"}}',
+  BTN_TTT_CANCEL:
+    '{"text":"【取消邀请】","color":"gray","clickEvent":{"action":"run_command","value":"/trigger ybih.trigger set 31"}}',
+  BTN_TTT_AGAIN:
+    '{"text":"【再来一局】","color":"green","clickEvent":{"action":"run_command","value":"/trigger ybih.trigger set 32"}}',
   SCORE_MYRANK: '{"score":{"name":"#my_rank","objective":"ybih.config"}}',
-  SCORE_RPSWIN: '{"score":{"name":"@s","objective":"ybih.rps_win"}}',
+  // 九宫格的两种棋子与一格空白。棋盘要在聊天栏逐行重贴，棋子用静态文本，
+  // 空格才是可点的按钮。两种方言各写一份，生成器只引用记号。
+  //
+  // **三者的显示宽度必须完全一致**，否则同一行里三种格子宽度不同，左对齐就会错位：
+  // 聊天栏没有制表位，列对得齐全靠每格占一样宽。这里统一成「全角括号 + 全角符号」= 27 像素，
+  // 数字也用全角（半角数字只有 6 像素，与全角符号的 9 像素不一样宽）。
+  // 改这几个记号时必须三个一起改，改完照 F33b 验收
+  TTT_X: '{"text":"【✕】","color":"red"}',
+  TTT_O: '{"text":"【◯】","color":"aqua"}',
+  TTT_SP: '{"text":"【　】"}',
 };
 
 export const TEXT_SNBT = {
@@ -104,16 +122,65 @@ export const TEXT_SNBT = {
     "{text:'【确认】',color:'green',click_event:{action:'run_command',command:'/trigger ybih.trigger set 1'}}",
   BTN_REDO:
     "{text:'【取消重放】',color:'red',click_event:{action:'run_command',command:'/trigger ybih.trigger set 2'}}",
-  // 等待室猜拳用的三个点击入口：11 石头 / 12 剪刀 / 13 布
-  BTN_RPS_ROCK:
-    "{text:'【石头】',color:'white',click_event:{action:'run_command',command:'/trigger ybih.trigger set 11'}}",
-  BTN_RPS_SCISSORS:
-    "{text:'【剪刀】',color:'yellow',click_event:{action:'run_command',command:'/trigger ybih.trigger set 12'}}",
-  BTN_RPS_PAPER:
-    "{text:'【布】',color:'aqua',click_event:{action:'run_command',command:'/trigger ybih.trigger set 13'}}",
+  // 等待室的常驻入口：11 刷新名单 / 12 离座 / 13 重贴棋盘
+  BTN_TTT_REFRESH:
+    "{text:'【刷新名单】',color:'gold',click_event:{action:'run_command',command:'/trigger ybih.trigger set 11'}}",
+  BTN_TTT_LEAVE:
+    "{text:'【离座】',color:'dark_red',click_event:{action:'run_command',command:'/trigger ybih.trigger set 12'}}",
+  BTN_TTT_BOARD:
+    "{text:'【看棋盘】',color:'dark_purple',click_event:{action:'run_command',command:'/trigger ybih.trigger set 13'}}",
+  BTN_TTT_ACCEPT:
+    "{text:'【同意】',color:'green',click_event:{action:'run_command',command:'/trigger ybih.trigger set 29'}}",
+  BTN_TTT_DECLINE:
+    "{text:'【拒绝】',color:'red',click_event:{action:'run_command',command:'/trigger ybih.trigger set 30'}}",
+  BTN_TTT_CANCEL:
+    "{text:'【取消邀请】',color:'gray',click_event:{action:'run_command',command:'/trigger ybih.trigger set 31'}}",
+  BTN_TTT_AGAIN:
+    "{text:'【再来一局】',color:'green',click_event:{action:'run_command',command:'/trigger ybih.trigger set 32'}}",
   SCORE_MYRANK: "{score:{name:'#my_rank',objective:'ybih.config'}}",
-  SCORE_RPSWIN: "{score:{name:'@s',objective:'ybih.rps_win'}}",
+  TTT_X: "{text:'【✕】',color:'red'}",
+  TTT_O: "{text:'【◯】',color:'aqua'}",
+  TTT_SP: "{text:'【　】'}",
 };
+
+// 九宫格的 9 个落子按钮，trigger 值 20..28 按格号排。
+// 按钮不带桌号：一个人同时只坐一桌，桌号由他自己身上的标记决定，9 个够四张桌共用。
+// 棋盘要在聊天栏逐帖重贴，而 tellraw 读不了记分板，所以「空格可点 / 落子不可点」
+// 只能由生成器按盘面展开；这里只提供「空格」这一种可点样式，两种文本方言各生成一套。
+//
+// 数字用**全角**：与 TTT_X / TTT_O / TTT_SP 一样占 27 像素，三种格子才能对齐成九宫格
+const FULLWIDTH_DIGITS = ['１', '２', '３', '４', '５', '６', '７', '８', '９'];
+function cellTokens(style) {
+  const out = {};
+  for (let n = 1; n <= 9; n += 1) {
+    const v = 19 + n;
+    const glyph = FULLWIDTH_DIGITS[n - 1];
+    out[`BTN_TTT_${n}`] =
+      style === 'json'
+        ? `{"text":"【${glyph}】","color":"gray","clickEvent":{"action":"run_command","value":"/trigger ybih.trigger set ${v}"}}`
+        : `{text:'【${glyph}】',color:'gray',click_event:{action:'run_command',command:'/trigger ybih.trigger set ${v}'}}`;
+  }
+  return out;
+}
+Object.assign(TEXT_JSON, cellTokens('json'));
+Object.assign(TEXT_SNBT, cellTokens('snbt'));
+
+// 名单里每个人后面那个【邀请】：名单位 i 对应 trigger 值 40+i，i 从 1 数到 12。
+// 名单位是常量，所以每位一个按钮、值也写死 —— 这也是「不用按编号找人就点得到他」的原因
+const ROSTER_SIZE = 12;
+function inviteTokens(style) {
+  const out = {};
+  for (let i = 1; i <= ROSTER_SIZE; i += 1) {
+    const v = 40 + i;
+    out[`BTN_TTT_INV_${i}`] =
+      style === 'json'
+        ? `{"text":"【邀请】","color":"dark_green","clickEvent":{"action":"run_command","value":"/trigger ybih.trigger set ${v}"}}`
+        : `{text:'【邀请】',color:'dark_green',click_event:{action:'run_command',command:'/trigger ybih.trigger set ${v}'}}`;
+  }
+  return out;
+}
+Object.assign(TEXT_JSON, inviteTokens('json'));
+Object.assign(TEXT_SNBT, inviteTokens('snbt'));
 
 // 物品语法：legacy=NBT，componentA=1.20.5 组件谓词数组，componentB=1.21.5 组件谓词单元素
 function giveLegacy(material) {
@@ -208,6 +275,10 @@ export {
   pageContentRows,
   pageLines,
   textWidth,
+  TTT_BOOK_TITLE,
+  TTT_BOOK_AUTHOR,
+  TTT_BOOK_PAGES,
+  tttBookCommand,
 } from './book.mjs';
 
 export const PACKS = [

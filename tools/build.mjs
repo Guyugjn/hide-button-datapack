@@ -19,11 +19,15 @@ import {
   MATERIAL_TO_BLOCK,
   MATERIAL_TO_TAG,
   bookCommand,
+  tttBookCommand,
+  TTT_BOOK_PAGES,
   SETTING_FUNCS,
   BUTTON_FACINGS,
   BOOK_PAGES,
   BOOK_LINES,
   BOOK_LINE_WIDTH,
+  TEXT_JSON,
+  TEXT_SNBT,
   HINT_RADII,
   HINT_RANGE_DEFAULT,
   pageContentRows,
@@ -31,6 +35,7 @@ import {
   textWidth,
 } from '../src/manifest.mjs';
 import { BLOCK_SINCE, sinceOf, versionAtLeast } from '../src/block_versions.mjs';
+import { buildTttGenerated } from './ttt.mjs';
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const SRC = join(ROOT, 'src');
@@ -446,7 +451,12 @@ function genFluidCheck(pack) {
   return lines.join('\n');
 }
 
+// 等待室九宫格棋的全部生成器都在 tools/ttt.mjs：棋盘跟着人走，
+// 所以同一份代码同时服务任意多局，不再有固定桌数
+const TTT_GENERATED = buildTttGenerated(tttBookCommand);
+
 const GENERATED = {
+  ...TTT_GENERATED,
   'data/ybih/function/player/give_buttons.mcfunction': genGiveButtons,
   'data/ybih/function/button/tag_material.mcfunction': genTagMaterial,
   'data/ybih/function/button/tag_face.mcfunction': genTagFace,
@@ -694,6 +704,21 @@ function commandArgs(code, cmd) {
   return m ? m[1].split(/\s+/).filter(Boolean) : [];
 }
 
+// tellraw 的组件列表里漏逗号（`[{...}{...}]`）是 SNBT/JSON 解析错误，
+// 后果与漏 execute 同级：**整个函数文件不加载**，只往日志留一行 Whilst parsing command。
+// 这个坑真的踩过 —— room/ttt_notice 末尾两条兜底语句漏了一个逗号，
+// 邀请提示整条哑掉，而紧随其后的 told 标记照常置位，于是提示再也不发，
+// 表现为「只有点刷新才看得到被邀请」。构建期拦下最省事。
+//
+// 判据只认 `}` 紧跟 `{`：两个对象之间漏逗号是这里唯一的真信号。
+// **不要顺手加 `]` 紧跟 `[`** —— `tellraw @a[选择器] [组件列表]` 天然就长这样，
+// 加了会把好行全判成错的（这一版就踩过，构建当场把 enter_searching_rotate 误报出来）。
+// 也要排除未替换的 {{记号}}：`}}{{` 会在第二个 } 与 { 之间命中，那属于占位符问题，另有校验管
+function findMissingComma(code) {
+  if (/\}\}\{\{/.test(code)) return false;
+  return /\}\s*\{/.test(code);
+}
+
 // 剥掉字符串后每一列的花括号嵌套深度。用来区分「命令的真参数块」与「那条命令载荷里的 NBT」：
 // 原版标签只该在命令自身的参数里引用；NBT 里的标签名由解析器当字符串处理，
 // 不查白名单、游戏也照常工作，混在一起查会把好好的行判成错误
@@ -911,6 +936,13 @@ function validate(packDir, pack) {
         // 语法类检查一律跑在剥离字符串字面量之后的文本上：
         // 文案里出现 if / unless / forceload 这类词不该被当成命令语法
         const code = stripStringLiterals(line);
+        // 组件列表漏逗号会让整个函数不加载，且报错只进日志、不进聊天栏，
+        // 排查代价极高（表现为「某个提示莫名其妙不发」），构建期直接拦下
+        if (findMissingComma(code)) {
+          errors.push(
+            `组件列表漏了逗号（出现 }{ 相邻），整份函数会静默不加载 于 ${rel}:${lineNo}`,
+          );
+        }
         const depth = codeBraceDepth(code);
         const args = commandArgs(code, 'forceload');
         if (args.length > 0) {
@@ -1035,6 +1067,51 @@ function validate(packDir, pack) {
     const text = readFileSync(f, 'utf8');
     for (const m of text.matchAll(/\bfunction\s+(ybih:[a-z0-9_/]+)/gi)) {
       if (!defined.has(m[1])) errors.push(`引用不存在的函数 ${m[1]} 于 ${rel}`);
+    }
+  }
+
+  // 点击通道的值必须有分派。按钮发出 `trigger ybih.trigger set N`，由
+  // button/trigger_run 按 N 分派到具体函数 —— 那边漏一条，这个按钮点了就**毫无反应**，
+  // 既不报错也不进日志，只能靠玩家发现「这个按钮没用」。真踩过：
+  // 【看我的棋盘】(13) 的分派被删掉后，书里和棋盘末尾那个按钮一起变成了死键。
+  // 反过来，分派了却没人发的值不算错（可能留给将来的入口），所以只查单向
+  {
+    const dispatcher = files.find((f) => f.endsWith(`button${sep}trigger_run.mcfunction`));
+    if (!dispatcher) {
+      errors.push('找不到 button/trigger_run.mcfunction，无法核对点击通道');
+    } else {
+      const dispText = readFileSync(dispatcher, 'utf8');
+      // 只收「真正调了函数」的那些分派行（`... run function ybih:...`）。
+      // 不能把文件里所有 `trigger matches` 都当分派 —— trigger_run 末尾还有一条
+      // 「matches 11..52」的**提示行**（人不在房里时说一句），它的区间会把 11..52
+      // 整个盖住，于是删掉其中任何一个真实分派都检测不出来。
+      // 这一版就踩过：13 的分派被删掉后校验依然通过，正是被那条提示行喂了假覆盖
+      const ranges = [];
+      for (const line of dispText.split(/\r?\n/)) {
+        if (!/\brun\s+function\s+ybih:/.test(line)) continue;
+        for (const m of line.matchAll(/ybih\.trigger\s+matches\s+(\d+)(?:\.\.(\d+))?/g)) {
+          ranges.push([Number(m[1]), m[2] === undefined ? Number(m[1]) : Number(m[2])]);
+        }
+      }
+      const covered = (v) => ranges.some(([lo, hi]) => v >= lo && v <= hi);
+      const emitted = new Map(); // 值 → 发出它的文件
+      for (const f of files) {
+        if (!f.endsWith('.mcfunction')) continue;
+        const rel = relative(packDir, f).split(sep).join('/');
+        // 分派器自己不算「发出」，避免自我循环
+        if (rel.endsWith('button/trigger_run.mcfunction')) continue;
+        for (const m of readFileSync(f, 'utf8').matchAll(/ybih\.trigger set (\d+)/g)) {
+          const v = Number(m[1]);
+          if (!emitted.has(v)) emitted.set(v, rel);
+        }
+      }
+      for (const [v, rel] of [...emitted].sort((a, b) => a[0] - b[0])) {
+        if (!covered(v)) {
+          errors.push(
+            `点击值 ${v} 有按钮在发它（${rel}），但 button/trigger_run 没有分派 —— 按了会毫无反应`,
+          );
+        }
+      }
     }
   }
 
@@ -1220,8 +1297,18 @@ function validateBook() {
       errors.push(`目录页「${item.label}」前面写的是「${String(item.prefix).trim()}」，可它指向第 ${item.page} 页`);
     }
   }
-  BOOK_PAGES.forEach((page, index) => {
-    const where = `第 ${index + 1} 页「${page.title}」`;
+  // 两本书共用同一套版式尺子：设置书与等待室那本《九宫格棋》
+  errors.push(...validatePages(BOOK_PAGES, '设置书'));
+  errors.push(...validatePages(TTT_BOOK_PAGES, '九宫格棋书'));
+  return errors;
+}
+
+// 逐页体检：行数、折行宽度、字符量、排出来的总行数。两本书共用同一把尺子
+function validatePages(pages, bookName) {
+  const errors = [];
+  const total = pages.length;
+  pages.forEach((page, index) => {
+    const where = `${bookName}第 ${index + 1} 页「${page.title}」`;
     for (const item of page.items) {
       if (item.page !== undefined && (item.page < 1 || item.page > total)) {
         errors.push(`${where}的「${item.label}」跳到不存在的第 ${item.page} 页`);
@@ -1372,7 +1459,64 @@ if (pruned.length > 0) {
   console.log(`  · 已清理 ${pruned.length} 项不再产出的残留：${pruned.join('、')}\n`);
 }
 
+// 棋盘三格必须等宽：聊天栏没有制表位，每行靠「三种格子占一样宽」才能对齐成九宫格。
+// 曾经把落子画成单个 ✕（9 像素）而空格画成【1】（24 像素），同一行里宽度不等，
+// 一落子整行就跟着缩，列全歪 —— 实测错位就是这么来的。
+// 这条校验直接把「等宽」钉成硬约束：以后谁改了 TTT_X / TTT_O / TTT_SP / BTN_TTT_*，
+// 只要三者宽度不再一致，构建当场失败
+function validateBoardCells() {
+  const errors = [];
+  const extract = (raw) => {
+    const m = raw.match(/(?:"text"|text)\s*:\s*(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')/);
+    return m ? (m[1] ?? m[2] ?? '') : null;
+  };
+  const cells = [
+    ['空格（可点）', TEXT_JSON.BTN_TTT_1],
+    ['叉', TEXT_JSON.TTT_X],
+    ['圈', TEXT_JSON.TTT_O],
+  ];
+  const widths = [];
+  for (const [name, raw] of cells) {
+    const text = extract(raw ?? '');
+    if (text === null) {
+      errors.push(`棋盘记号「${name}」里找不到 text 字段，无法核对宽度`);
+      continue;
+    }
+    widths.push([name, text, textWidth(text)]);
+  }
+  if (widths.length === 3) {
+    const base = widths[0][2];
+    for (const [name, text, w] of widths) {
+      if (w !== base) {
+        errors.push(
+          `棋盘三格不等宽：${widths[0][0]}「${widths[0][1]}」${base} 像素，` +
+            `但${name}「${text}」${w} 像素 —— 聊天栏没有制表位，宽度不等会让棋盘错位`,
+        );
+      }
+    }
+    // 九个落子按钮彼此也要一样宽（都是「【全角数字】」）
+    for (let n = 1; n <= 9; n += 1) {
+      const text = extract(TEXT_JSON[`BTN_TTT_${n}`] ?? '');
+      if (text === null) {
+        errors.push(`棋盘第 ${n} 格的可点按钮里找不到 text 字段`);
+      } else if (textWidth(text) !== base) {
+        errors.push(
+          `棋盘第 ${n} 格「${text}」宽 ${textWidth(text)} 像素，与其余格子（${base} 像素）不一致`,
+        );
+      }
+    }
+  }
+  return errors;
+}
+
 const bookErrors = validateBook();
+const boardErrors = validateBoardCells();
+if (boardErrors.length > 0) {
+  failed = true;
+  console.log('  ✗ 棋盘格子对齐');
+  for (const e of boardErrors) console.log(`      - ${e}`);
+  console.log('');
+}
 if (bookErrors.length > 0) {
   failed = true;
   console.log('  ✗ 设置书排版');

@@ -138,13 +138,11 @@ scoreboard players set #c100 ybih.config 100
 scoreboard players set #c2 ybih.config 2
 # 求最小值时的哨兵：比任何真实编号都大
 scoreboard players set #c_max ybih.config 2147483647
-# 等待室：粒子节拍（2 秒一次）、猜拳取模用的 3
+# 等待室：粒子节拍（2 秒一次）
 scoreboard players set #room_timer ybih.config 0
-scoreboard players set #c3 ybih.config 3
-# 猜拳结算的暂存：每次出拳递增的种子、算出来的对手那一手、胜负差
-scoreboard players set #rps_seed ybih.config 0
-scoreboard players set #rps_ai ybih.config 0
-scoreboard players set #rps_diff ybih.config 0
+# 九宫格棋的暂存只在一次操作内用，每次都由 room/ttt_reset 或各函数开头归零。
+# 这里只放一个「人是否在房里」——button/trigger_run 每次都要读它
+scoreboard players set #t_in ybih.ttt 0
 # 等待信息栏的暂存：自己的编号，以及数出来的队列位次
 scoreboard players set #my_id ybih.config 0
 scoreboard players set #my_rank ybih.config 1

@@ -323,20 +323,83 @@ function pageToSnbt(rows) {
   return '[' + parts.join(',') + ']';
 }
 
-// 生成 give 设置书的命令
+// 生成 give 一本书的命令
 // 包 1、包 2：书页是「装着 JSON 的字符串」，所以整页要用单引号包起来
 // 包 3（1.21.5 起）：书页本身就是文本组件，直接用组件列表，不再套字符串
-export function bookCommand(pack) {
-  const title = `"${BOOK_TITLE}"`;
-  const total = BOOK_PAGES.length;
-  const rows = BOOK_PAGES.map((page, index) => pageLines(page, index, total));
+function bookCommandFrom(pack, title, author, pages) {
+  const titleField = `"${title}"`;
+  const total = pages.length;
+  const rows = pages.map((page, index) => pageLines(page, index, total));
   if (pack.bookStyle === 'component-snbt') {
-    const pages = rows.map((r) => pageToSnbt(r)).join(',');
-    return `give @s minecraft:written_book[minecraft:written_book_content={pages:[${pages}],title:${title},author:"${BOOK_AUTHOR}"}]`;
+    const pageList = rows.map((r) => pageToSnbt(r)).join(',');
+    return `give @s minecraft:written_book[minecraft:written_book_content={pages:[${pageList}],title:${titleField},author:"${author}"}]`;
   }
-  const pages = rows.map((r) => `'${pageToJson(r)}'`).join(',');
+  const pageList = rows.map((r) => `'${pageToJson(r)}'`).join(',');
   if (pack.bookStyle === 'legacy') {
-    return `give @s minecraft:written_book{pages:[${pages}],title:${title},author:"${BOOK_AUTHOR}"}`;
+    return `give @s minecraft:written_book{pages:[${pageList}],title:${titleField},author:"${author}"}`;
   }
-  return `give @s minecraft:written_book[minecraft:written_book_content={pages:[${pages}],title:${title},author:"${BOOK_AUTHOR}"}]`;
+  return `give @s minecraft:written_book[minecraft:written_book_content={pages:[${pageList}],title:${titleField},author:"${author}"}]`;
+}
+
+export function bookCommand(pack) {
+  return bookCommandFrom(pack, BOOK_TITLE, BOOK_AUTHOR, BOOK_PAGES);
+}
+
+// ── 等待室九宫格棋的说明书 ────────────────────────────────────────
+//
+// 和设置书同一套排版，但按下去提交的是 trigger 值而不是 /function：
+// 书页的 run_command 以玩家本人身份执行，而参赛者没有 OP，写 /function 会被服务端拒绝。
+// /trigger 是人人都能用的通道，等待室里的点击入口一律走它 —— 棋盘上的空格子也一样。
+//
+// **书里放不下玩家名**：书页内容在构建期就写死了，原版没办法在运行时把玩家名插进来。
+// 所以「挑对手」只能在聊天栏点（那里能用 {"selector"} 取到真名），
+// 书里放的是玩法说明与【刷新名单】。
+export const TTT_BOOK_TITLE = '九宫格棋';
+export const TTT_BOOK_AUTHOR = 'ybih';
+
+export const TTT_BOOK_PAGES = [
+  {
+    title: '九宫格棋',
+    note: '等待室里的两人对局',
+    lines: ['看完这一页就翻开书', '先点【刷新名单】', '名单贴在聊天栏里', '点谁后面的【邀请】'],
+    items: [
+      {
+        label: '刷新名单',
+        cmd: 'trigger ybih.trigger set 11',
+        color: 'gold',
+        tip: '重贴聊天栏名单，顺便把状态找回来；有人进出就按一下',
+      },
+      {
+        label: '离座',
+        cmd: 'trigger ybih.trigger set 12',
+        color: 'dark_red',
+        tip: '退出当前这一局，让对手回到空闲',
+      },
+      {
+        label: '看我的棋盘',
+        cmd: 'trigger ybih.trigger set 13',
+        color: 'dark_purple',
+        tip: '把你这张棋盘重新贴一遍到聊天栏',
+      },
+    ],
+  },
+  {
+    title: '怎么下',
+    note: '棋盘在聊天栏里',
+    lines: [
+      '名单里点【邀请】挑人',
+      '他点【同意】就开局',
+      '邀请的人执 ✕ 先走',
+      '再开一局就换先手',
+      '空位是带数字的灰格子',
+      '点那个数字就落子',
+      '落过的格子点不动',
+      '连成三子当场通报',
+    ],
+    items: [],
+  },
+];
+
+export function tttBookCommand(pack) {
+  return bookCommandFrom(pack, TTT_BOOK_TITLE, TTT_BOOK_AUTHOR, TTT_BOOK_PAGES);
 }
