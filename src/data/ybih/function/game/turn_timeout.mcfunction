@@ -21,12 +21,19 @@ execute as @a[tag=ybih_player,scores={ybih.id=1..}] if score @s ybih.id = #hide_
 # 记分板的分数持有者条目对离线玩家一样存在，但他的名字只有他自己回来时才拿得到 ——
 # 在线的 @a 选择器永远选不中他，所以只能反过来由他来找这笔账。
 #
-# 欠账是**位图**（ybih.owed，位号 = 编号 - 1），不是「一个编号占一格」：
+# 欠账是**位图**（挂在 ybih.config 上的 #owed，位号 = 编号 - 1），不是「一个编号占一格」：
 # 后者在连续两次「超时且掉线」时，后一笔会把前一笔顶掉，先欠的那位白逃一分。
-# 位图按位或累加（下一行）、按位减结清（player/on_join），两笔互不影响
+# 位图按位或累加（下面）、按位减结清（player/on_join），两笔互不影响
+#
+# 三行都必须带 #hide_found matches 0，一个都不能少：
+# #owed_bit 是每次结算**复用**的暂存，这一次没探到人才重算它。
+# 若最后那行漏掉这个前置，目标这次明明在线（已当场扣过分），
+# 它却会照着上一轮留下的旧掩码再累加一次 —— 重复置同一位会让位图进位，
+# 结果是「先欠的那位凭空销账，编号大一位的无辜玩家反而被扣分」
+scoreboard players set #owed_bit ybih.config 0
 execute if score #hide_found ybih.config matches 0 run scoreboard players operation #owed_src ybih.config = #hide_id ybih.config
 execute if score #hide_found ybih.config matches 0 run function ybih:game/owed_bit
-execute if score #owed_bit ybih.config matches 1.. run scoreboard players operation #owed ybih.config += #owed_bit ybih.config
+execute if score #hide_found ybih.config matches 0 if score #owed_bit ybih.config matches 1.. run scoreboard players operation #owed ybih.config += #owed_bit ybih.config
 
 execute as @a[tag=ybih_current] run clear @s #minecraft:buttons
 execute as @e[tag=ybih_pending] run function ybih:button/retract_pending

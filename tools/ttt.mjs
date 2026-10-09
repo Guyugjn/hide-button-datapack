@@ -311,7 +311,7 @@ function genTttStart() {
     lines.push(`${toOther} run scoreboard players set @s ${cell(n)} 0`);
   }
   lines.push('');
-  lines.push('# 先手：tfirst 记「这一局由执什么棋子的人先走」，两边保持同一个值。');
+  lines.push('# 先手：ybih.ttt_first 记「这一局由执什么棋子的人先走」，两边保持同一个值。');
   lines.push('# 谁的角色等于它谁就先走 —— 两人角色互补，所以算出来必定是同一个人。');
   lines.push('# 对手的角色 = 3 − 我的角色（1 叉 / 2 圈互补）');
   lines.push('scoreboard players set #t_move ybih.ttt 0');
@@ -860,6 +860,11 @@ function genTttReset() {
   // 名单位用 reset * 而不是 set @a 0：@a 够不到离线玩家，掉线者身上那份旧的 rseat
   // 会跨过这次清零留下来，他重连时就会顶掉别人已经坐上的号（见 room/ttt_seat）
   lines.push(`scoreboard players reset * ${T_SEAT}`);
+  // 再给在线的人补一个 0 —— 两条缺一不可：
+  // reset * 删掉的是**条目本身**，而「读一个不存在的条目」会让 operation 静默失败、
+  // 目标保留旧值（ttt_invite 里 `#myslot = @s rseat` 就踩这个）。补上 0 之后
+  // 在线者的读必定成功，离线者则保持「没有条目」，重连时照样会被重新分配
+  lines.push(`scoreboard players set @a ${T_SEAT} 0`);
   for (let n = 1; n <= TTT_CELLS; n += 1) {
     lines.push(`scoreboard players set @a ${cell(n)} 0`);
   }

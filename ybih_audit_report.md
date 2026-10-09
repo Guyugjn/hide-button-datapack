@@ -636,7 +636,7 @@ execute unless score #state ybih.config matches 2 run scoreboard players set @s 
 | P1 | `player/leave_game` | 在清 `ybih.id` **之前**调 `ybih:room/ttt_abort`（abort 靠编号找回对手，顺序不能反） |
 | L1 | `button/trigger_run` | 非藏匿阶段点 1/2 补提示；**该条必须排在清零之前**，否则值已归零、判不出来 |
 | L2 | `game/cleanup_end`、`game/reload_cleanup`、`reset/run` | 三处 `tag @a remove ybih_presser` 全部删除 |
-| L3 | `game/turn_timeout`、`player/on_join`、新增 `game/owed_bit`、`config/defaults`、`load` | 单槽 `#hide_owed` 改为**位图记分项** `ybih.owed`（位号 = 编号 − 1，与 `ybih.hit` 同一套取模），按位或累加、按位减结清 |
+| L3 | `game/turn_timeout`、`player/on_join`、新增 `game/owed_bit`、`config/defaults`、`load` | 单槽 `#hide_owed` 改为**位图**（挂在 `ybih.config` 上的假玩家 `#owed`，位号 = 编号 − 1，与 `ybih.hit` 同一套取模），按位或累加、按位减结清 |
 | L4 | `tools/ttt.mjs`（`genTttBoard`） | 棋盘最后一行补一条 `unless tres 1..3` 分支，对局中也有【离座】；对局中仍**不给**【再来一局】（它认的是「刚下完」） |
 | L5 | `button/trigger_run` | `11..52` 拆成 `11..13` / `20..32` / `41..52` 三段，不再覆盖无人发出的 `14..19`、`33..40` |
 | L6 | `tools/ttt.mjs`（`genTttVerify`） | 注释改为说明「那条兜底由 `ttt_tick` 独立完成、与本函数无调用关系」 |
@@ -653,7 +653,30 @@ execute unless score #state ybih.config matches 2 run scoreboard players set @s 
 2. **`ttt_seat` 的「空位」判据**：`ttt_reset` 改用 `reset *` 后会**删掉条目**而不只是置 0，而 `matches 0` 对「没有条目」的记分板持有者**不成立** —— 满员提示与空位判定会一起失效。两处都改成 `unless ... matches 1..`，并在 `config/defaults` 里给 `#rs1..#rs12` 写初值。
 3. **`scoreboard players remove` 不吃记分板源**：位图减法只能写 `operation ... -=`，不能写 `remove ... <源>`。
 
+### 复检轮（对修复本身再做一次对抗性复查）新查出的问题
+
+修复提交之后又完整复查了一遍修复产物（把修复前那一版也构建出来，逐条比对**会执行的命令**，
+忽略注释与空行），查出下面 5 条。它们全都是**这次修复自己带进来的**，
+前 4 条已当场改掉，第 5 条连同一条构建期守卫一起补上。
+
+| # | 位置 | 问题 | 后果 |
+| --- | --- | --- | --- |
+| R1 | `game/turn_timeout` | 记账三行里，**累加那一行漏了 `#hide_found matches 0`**，且累加前没有先把 `#owed_bit` 归零 | `#owed_bit` 是每次结算复用的暂存。目标这次**在线**（已当场扣过分）时，会照着上一轮留下的旧掩码再累加一次；重复置同一位会让位图**进位** —— 该销账的没销，编号大一位的**无辜玩家**反而被扣一分 |
+| R2 | `room/ttt_reset`（`tools/ttt.mjs`） | 改用 `reset *` 之后**只有它、没有补写 0** | `reset *` 删掉的是**条目本身**，而 `room/ttt_invite` 里有一句 `operation #myslot = @s rseat` —— 读一个不存在的条目会让这条命令**静默失败**、`#myslot` 保留上一个人的值，于是邀请会写到错误的号位上（聊天栏里显示出**别人的名字**） |
+| R3 | `load.mcfunction` | 顺手声明了一个 `ybih.owed` 记分项，但超时欠账的位图**实际挂在 `ybih.config` 的假玩家 `#owed` 上** | 空记分项本身无害，但它会让人以为「欠账在 `ybih.owed` 里」，照着它去读永远读到空。已删除该声明，并修正 `game/turn_timeout`、`player/on_join`、`ybih_memory.md`、`ybih_design_doc.md` 里的相关措辞 |
+| R4 | `tools/ttt.mjs` | `genTttStart` 里的注释还写着旧名 `tfirst` | 纯注释，但正是 E2 要消灭的那种「一低头就写回旧名」的隐患 |
+| R5 | `tools/build.mjs` | — | 新增**构建期守卫**：`scoreboard objectives add` 声明的记分项必须真的被读写过，否则报错。已用反向对照验证（临时塞一个 `ybih.deadcheck` 进去，构建确实以退出码 1 失败）。查重按函数根目录分别进行 —— 低版本包有意同时提供 `functions/` 与 `function/` 两份 |
+
+R1 另写了记分板语义的仿真脚本做验证（含反向对照：把修复去掉后，位图确实从 `2` 被污染成 `4`），
+确认判据不是空转的；脚本属一次性排查工具，未留在仓库里。
+
+键位记录：**`reset *` 是唯一能清掉离线玩家的写法，但它删条目而不是置 0**
+—— 凡是读 `ybih.rseat` 的地方，判据一律得是 `unless ... matches 1..`，
+且每个 `reset *` 之后都要给在线者补一个 `0`。这是本轮风险最高的一处。
+
 ### 仍需实机验证
 
 本报告第八节的 T1–T11 仍全部有效（静态分析不能替代实机）。
 此外本轮修复新增的实机项已并入 `ybih_test_checklist.txt`：`F5b`（M3）、`F5c`（L3）、`F33b9`（M1）、`F33b10`（M2）、`F33b11`（L4）、`F33b12`（L1）。
+复检轮新查出并修掉的 R1 / R2 / R3 也各补了一条用例：`F5d`（R1 连续两次超时、其中一次人在线）、
+`F33b13`（R2 邀请时报出的名字必须是本人）、`F5e`（R3 欠账位图落在 `#owed` 上）。

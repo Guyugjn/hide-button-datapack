@@ -28,8 +28,9 @@ scoreboard objectives add ybih.value dummy
 # 记分板没有按位与，判定写成取模，见 button/award_grant
 scoreboard objectives add ybih.hit dummy
 # 全程一份的超时欠账位图：位号 = 编号 - 1，记「这位玩家欠一次超时结算」。
-# 与 ybih.hit 同一套取模判定，见 game/owed_bit 与 player/on_join
-scoreboard objectives add ybih.owed dummy
+# 位图挂在 ybih.config 上的 #owed（不是另开一个记分项），与 ybih.hit 同一套取模判定，
+# 见 game/owed_bit 与 player/on_join
+#
 # 侧边栏看的是镜像榜：真实分数在 ybih.score，这里只放当前在线的人
 scoreboard objectives add ybih.board dummy
 # 等待室九宫格棋的棋盘与暂存。棋盘跟着人走：每个人的九格、角色、对局状态都在自己身上，

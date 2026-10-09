@@ -1095,6 +1095,55 @@ function validate(packDir, pack) {
     }
   }
 
+  // 记分项：声明了就必须真有人用。`scoreboard objectives add` 是唯一会「静默积攒垃圾」的地方 ——
+  // 多余的声明不报错、不影响加载，只是每份存档里白留一个空记分板，
+  // 而且它会让人误以为某个状态存在（真踩过：超时欠账的位图其实挂在 ybih.config 上，
+  // 却顺手声明了一个 ybih.owed，谁读这个记分项都会得到一个永远为空的结果）。
+  // 反过来「用了没声明」更致命，那条命令每 tick 静默失败，所以两个方向都查
+  {
+    // 只在**同一个函数根目录**内查重：低版本包按 1.13 的旧名 functions/ 与 1.17 起的
+    // function/ 各放一份完全相同的内容（见 FUNCTION_DIRS），两份同名声明是有意为之
+    const declared = new Map(); // `根目录|记分项` -> 声明处
+    const rootOf = (rel) => (rel.includes('/functions/') ? 'functions' : 'function');
+    for (const f of files) {
+      if (!f.endsWith('.mcfunction')) continue;
+      const rel = relative(packDir, f).split(sep).join('/');
+      const text = readFileSync(f, 'utf8');
+      for (const m of text.matchAll(/^\s*scoreboard\s+objectives\s+add\s+(\S+)/gm)) {
+        const key = `${rootOf(rel)}|${m[1]}`;
+        if (declared.has(key)) {
+          errors.push(
+            `记分项重复声明 ${m[1]} 于 ${rel}（已在 ${declared.get(key)} 声明过）`,
+          );
+        } else {
+          declared.set(key, rel);
+        }
+      }
+    }
+    // 被 set/add/remove/reset/enable/operation 或 if score 读到的记分项
+    const used = new Set();
+    for (const f of files) {
+      if (!f.endsWith('.mcfunction')) continue;
+      for (const raw of readFileSync(f, 'utf8').split('\n')) {
+        const line = raw.trim();
+        if (!line || line.startsWith('#')) continue;
+        const w = line.match(
+          /\bscoreboard\s+players\s+(?:set|add|remove|reset|enable|operation)\s+\S+\s+([A-Za-z0-9_.+-]+)/,
+        );
+        if (w) used.add(w[1]);
+        for (const m of line.matchAll(/score\s+\S+\s+([A-Za-z0-9_.+-]+)\s+(?:matches|[<>=])/g)) {
+          used.add(m[1]);
+        }
+      }
+    }
+    for (const [key, where] of declared) {
+      const obj = key.slice(key.indexOf('|') + 1);
+      if (!used.has(obj)) {
+        errors.push(`记分项 ${obj} 只用 objectives add 声明过（${where}），全包没有任何命令读写它`);
+      }
+    }
+  }
+
   // 点击通道的值必须有分派。按钮发出 `trigger ybih.trigger set N`，由
   // button/trigger_run 按 N 分派到具体函数 —— 那边漏一条，这个按钮点了就**毫无反应**，
   // 既不报错也不进日志，只能靠玩家发现「这个按钮没用」。真踩过：
