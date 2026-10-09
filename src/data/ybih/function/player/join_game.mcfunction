@@ -12,9 +12,11 @@ scoreboard players set @s ybih.trigger 0
 scoreboard players set @s ybih.used -1
 scoreboard players set @s ybih.used_bid 0
 # 入队的人不再下等待室的棋：把身上那一局清干净（ttt_abort 会连对手一起收），
-# 名单位也交回去 —— 他这一局都在场上，不该再占着名单上的位子
+# 名单位也交回去 —— 他这一局都在场上，不该再占着名单上的位子。
+# 交回必须走 room/ttt_release：占用表（#rsN）与本人的 rseat 要成对清，
+# 只清 rseat 会让那个位子被永久占住，房里明明空着却报「名单满了」
 function ybih:room/ttt_abort
-scoreboard players set @s ybih.rseat 0
+function ybih:room/ttt_release
 
 # 先无条件撤掉三个标签，保证身上至多只剩一个；这一步不能省 —— 恢复点的三条命令
 # 都带 gamemode=spectator 前置，先命中的那条会把玩家切出旁观，后面的就再也不命中，

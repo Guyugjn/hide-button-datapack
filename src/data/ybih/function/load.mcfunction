@@ -27,6 +27,9 @@ scoreboard objectives add ybih.value dummy
 # 按钮上的位图：记「谁从这个按钮上拿过分」，位号 = 玩家编号 - 1。
 # 记分板没有按位与，判定写成取模，见 button/award_grant
 scoreboard objectives add ybih.hit dummy
+# 全程一份的超时欠账位图：位号 = 编号 - 1，记「这位玩家欠一次超时结算」。
+# 与 ybih.hit 同一套取模判定，见 game/owed_bit 与 player/on_join
+scoreboard objectives add ybih.owed dummy
 # 侧边栏看的是镜像榜：真实分数在 ybih.score，这里只放当前在线的人
 scoreboard objectives add ybih.board dummy
 # 等待室九宫格棋的棋盘与暂存。棋盘跟着人走：每个人的九格、角色、对局状态都在自己身上，
@@ -38,7 +41,9 @@ scoreboard objectives add ybih.topp dummy
 scoreboard objectives add ybih.topps dummy
 scoreboard objectives add ybih.tturn dummy
 scoreboard objectives add ybih.tres dummy
-scoreboard objectives add ybih.tfirst dummy
+# 名字里的 ttt 不能省：ybih.t_first 是藏匿顺序（原有序号），与本项只差一个下划线，
+# 两个语义完全不同，少写一个 t 就会改到另一个上
+scoreboard objectives add ybih.ttt_first dummy
 scoreboard objectives add ybih.told dummy
 scoreboard objectives add ybih.rseat dummy
 scoreboard objectives add ybih.t1 dummy

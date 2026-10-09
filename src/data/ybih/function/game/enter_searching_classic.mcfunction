@@ -11,8 +11,11 @@
 tag @a remove ybih_current
 execute if entity @e[tag=ybih_center] as @a[tag=ybih_player] run tp @s @e[tag=ybih_center,limit=1]
 
-# 场上不足 2 个按钮 → 没有「别人的按钮」可找，跳过搜寻
-execute if score #button_count ybih.config matches ..1 run function ybih:game/end_round
-execute if score #button_count ybih.config matches 2.. run title @a title {{TXT_S}}开始搜寻{{TXT_M}}gold{{TXT_E}}
-execute if score #button_count ybih.config matches 2.. run title @a subtitle {{TXT_S}}去按下别人的按钮{{TXT_E}}
-execute if score #button_count ybih.config matches 2.. run tellraw @a [{{TXT_S}}场上有 {{TXT_E}},{{SCORE_BUTTONS}},{{TXT_S}} 个按钮，每个都带着分{{TXT_E}}]
+# 场上一个按钮都没有 → 没有「别人的按钮」可找，跳过搜寻
+# 判据是 `..0` 而不是 `..1`：2 人开局时，藏匿者自己那颗按钮就已经把 #button_count
+# 顶到 1 了。写 `..1` 就等于「只剩 1 个按钮」也跳过 —— 而那个场景恰恰是
+# 「还有一颗别人的按钮等着被按」，跳过就把该得的分连同整个搜寻阶段一起吞了
+execute if score #button_count ybih.config matches ..0 run function ybih:game/end_round
+execute if score #button_count ybih.config matches 1.. run title @a title {{TXT_S}}开始搜寻{{TXT_M}}gold{{TXT_E}}
+execute if score #button_count ybih.config matches 1.. run title @a subtitle {{TXT_S}}去按下别人的按钮{{TXT_E}}
+execute if score #button_count ybih.config matches 1.. run tellraw @a [{{TXT_S}}场上有 {{TXT_E}},{{SCORE_BUTTONS}},{{TXT_S}} 个按钮，每个都带着分{{TXT_E}}]

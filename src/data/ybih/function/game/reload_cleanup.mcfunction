@@ -35,7 +35,6 @@ tag @a remove ybih_current
 tag @a remove ybih_top
 tag @a remove ybih_ranked
 tag @a remove ybih_pressed
-tag @a remove ybih_presser
 tag @a remove ybih_user
 tag @a remove ybih_ray_found
 tag @a remove ybih_gm_survival
@@ -62,6 +61,9 @@ scoreboard players set #timer ybih.config 0
 scoreboard players set #round ybih.config 0
 scoreboard players set #cycle ybih.config 0
 scoreboard players set #next_id ybih.config 1
+# 超时欠账属于本局：编号会被下一局从 1 重发，留着它会让新局里恰好抽到同一编号的人被误扣
+scoreboard players set #hide_id ybih.config 0
+scoreboard players set #owed ybih.config 0
 scoreboard players set #tick ybih.config 0
 scoreboard players set #gained ybih.config 0
 scoreboard players set #ranked ybih.config 0

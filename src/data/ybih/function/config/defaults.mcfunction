@@ -68,9 +68,15 @@ scoreboard players set #best_tfirst ybih.config 999999
 scoreboard players set #best_id ybih.config 0
 # 本回合藏匿者的编号：turn_next 在他还在线时记下，超时结算靠它找得到掉线的人
 scoreboard players set #hide_id ybih.config 0
-# 超时结算时目标不在线：扣分与 ybih.turn 置位都做不了，把编号挂在这里当欠账，等他重连自己来还。
-# 必须是独立于 #hide_id 的假玩家，否则下一位藏匿者一上任就把欠账抹掉
-scoreboard players set #hide_owed ybih.config 0
+# 超时结算时目标不在线：扣分与 ybih.turn 置位都做不了，把那一笔记在这个位图当欠账，等他重连自己来还。
+# 位号 = 编号 - 1，与 ybih.hit 同一套取模判定。用位图而不是单个编号：
+# 连续两次「超时且掉线」时，后一笔不会把前一笔顶掉。
+# #owed_src / #owed_bit / #owed_pow / #owed_now 是算这一笔时的暂存
+scoreboard players set #owed ybih.config 0
+scoreboard players set #owed_src ybih.config 0
+scoreboard players set #owed_bit ybih.config 0
+scoreboard players set #owed_pow ybih.config 0
+scoreboard players set #owed_now ybih.config 0
 # 结算时探一下目标在不在线，0 表示没探到（该记账），1 表示已经当场处理过
 scoreboard players set #hide_found ybih.config 0
 scoreboard players set #bw_now ybih.config 0
@@ -143,6 +149,21 @@ scoreboard players set #room_timer ybih.config 0
 # 九宫格棋的暂存只在一次操作内用，每次都由 room/ttt_reset 或各函数开头归零。
 # 这里只放一个「人是否在房里」——button/trigger_run 每次都要读它
 scoreboard players set #t_in ybih.ttt 0
+# 名单位占用表：1 = 这个号有人坐了。由 room/ttt_seat 补记、room/ttt_release 放掉、
+# room/ttt_reset 整体清空。这里给初值，免得首次加载时这些条目还不存在
+# （判空位用的是 unless ... matches 1..，条目缺失与「0」等价，但初值写明白更好读）
+scoreboard players set #rs1 ybih.ttt 0
+scoreboard players set #rs2 ybih.ttt 0
+scoreboard players set #rs3 ybih.ttt 0
+scoreboard players set #rs4 ybih.ttt 0
+scoreboard players set #rs5 ybih.ttt 0
+scoreboard players set #rs6 ybih.ttt 0
+scoreboard players set #rs7 ybih.ttt 0
+scoreboard players set #rs8 ybih.ttt 0
+scoreboard players set #rs9 ybih.ttt 0
+scoreboard players set #rs10 ybih.ttt 0
+scoreboard players set #rs11 ybih.ttt 0
+scoreboard players set #rs12 ybih.ttt 0
 # 等待信息栏的暂存：自己的编号，以及数出来的队列位次
 scoreboard players set #my_id ybih.config 0
 scoreboard players set #my_rank ybih.config 1

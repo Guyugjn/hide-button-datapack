@@ -34,7 +34,6 @@ tag @a remove ybih_current
 tag @a remove ybih_top
 tag @a remove ybih_ranked
 tag @a remove ybih_pressed
-tag @a remove ybih_presser
 tag @a remove ybih_user
 tag @a remove ybih_ray_found
 tag @a remove ybih_gm_survival

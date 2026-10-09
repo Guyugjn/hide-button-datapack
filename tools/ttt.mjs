@@ -55,7 +55,9 @@ const T_OPP = 'ybih.topp';
 const T_OPPS = 'ybih.topps';
 const T_TURN = 'ybih.tturn';
 const T_RES = 'ybih.tres';
-const T_FIRST = 'ybih.tfirst';
+// 名字里的 ttt 不能省：ybih.t_first 是藏匿顺序（原有序号），与这里只差一个下划线，
+// 两个记分项语义完全不同，少写一个 t 就会改到另一个上
+const T_FIRST = 'ybih.ttt_first';
 const T_TOLD = 'ybih.told';
 const T_SEAT = 'ybih.rseat';
 
@@ -144,8 +146,15 @@ function genTttBoard() {
     }
   }
   lines.push('');
+  lines.push('# 结果行下面这一排按钮：下完了才给【再来一局】，对局中只给【离座】。');
+  lines.push('# 对局中不给【再来一局】是因为它认的是「刚下完」，此刻点了毫无反应；');
+  lines.push('# 而【离座】无论下没下完都该有 —— 只在下完时贴出来，中途想走的人就只剩');
+  lines.push('# 【刷新名单】那条路，棋盘上明明写着「轮到你落子」却没有出口');
   lines.push(
     `execute if score @s ${T_RES} matches 1..3 run tellraw @s [{{BTN_TTT_AGAIN}},{{TXT_S}}  {{TXT_E}},{{BTN_TTT_LEAVE}}]`,
+  );
+  lines.push(
+    `execute unless score @s ${T_RES} matches 1..3 run tellraw @s [{{BTN_TTT_LEAVE}}]`,
   );
   return file(...lines);
 }
@@ -354,11 +363,21 @@ function genTttAbort() {
     '# ybih:room/ttt_abort —— 让执行者退出当前这一局（邀请中、对局中、刚下完都算），',
     '# 并顺手把对手那边的残局收干净',
     '# 双方谁先被检查到都能收干净：按编号找回对手，确认他指的也是我，才动他的数据。',
-    '# #t_quiet = 1 时不通报 —— 调用方若已用自己的措辞通知过，就把这句让给它',
+    '#',
+    '# 那句通知的收件人是**对手**，不是执行者：调用方（离座 / 拒绝 / 取消）已经用自己的',
+    '# 措辞跟执行者交代过了，两边收件人不同、不会重复。所以这里没有任何抑制开关 ——',
+    '# 加上抑制就只压掉对手唯一的那条通知：他的棋盘还停在「对局中」，',
+    '# 点格子却毫无反应，只能自己想起来点【刷新名单】。',
     '',
     'scoreboard players operation #me ybih.ttt = @s ybih.id',
     `scoreboard players operation #topp ybih.ttt = @s ${T_OPP}`,
-    `execute if score #t_quiet ybih.ttt matches 0 as @a if score @s ybih.id = #topp ybih.ttt if score @s ${T_OPP} = #me ybih.ttt run tellraw @s {{TXT_S}}对手不在了，这一局作废，可以重新挑人{{TXT_M}}yellow{{TXT_E}}`,
+    '',
+    '# 「#topp 从 1 起」这道守卫是给下面每一条兜底的：编号为 0 的人（没入队的、',
+    '# 被 cleanup_end 清过的）不止一个，少了它，一场「双方编号都是 0」的巧合就会',
+    '# 让这些命令一次选中所有 id=0 的人，把无关玩家的棋盘清掉',
+    'scoreboard players set #has_opp ybih.ttt 0',
+    'execute if score #topp ybih.ttt matches 1.. run scoreboard players set #has_opp ybih.ttt 1',
+    `execute if score #has_opp ybih.ttt matches 1 as @a if score @s ybih.id = #topp ybih.ttt if score @s ${T_OPP} = #me ybih.ttt run tellraw @s {{TXT_S}}对手不在了，这一局作废，可以重新挑人{{TXT_M}}yellow{{TXT_E}}`,
     '',
     '# 清我自己。topp 要留到最后 —— 下面找对手全靠它',
   ];
@@ -366,8 +385,9 @@ function genTttAbort() {
   lines.push(`scoreboard players set @s ${T_OPP} 0`);
   lines.push('');
   lines.push('# 清对手（如果他还在，而且他指的正是我）。他的 topp 同样最后清 ——');
-  lines.push('# 上面每一句都要靠「他的 topp 等于我」来确认动的是对的人');
-  const other = `execute as @a if score @s ybih.id = #topp ybih.ttt if score @s ${T_OPP} = #me ybih.ttt run`;
+  lines.push('# 上面每一句都要靠「他的 topp 等于我」来确认动的是对的人；');
+  lines.push('# 这一段同样只在 #has_opp 成立时才展开，理由与上面那条通知一样');
+  const other = `execute if score #has_opp ybih.ttt matches 1 as @a if score @s ybih.id = #topp ybih.ttt if score @s ${T_OPP} = #me ybih.ttt run`;
   clearPair(lines, (body) => `${other} ${body}`);
   lines.push(`${other} scoreboard players set @s ${T_OPP} 0`);
   return file(...lines);
@@ -404,7 +424,9 @@ function genTttVerify() {
   lines.push(
     `execute ${AT_ROOM} as @a[tag=ybih_player,distance=..12] if score @s ybih.id = #topp ybih.ttt if score @s ${T_STATE} = #need ybih.ttt if score @s ${T_OPP} = #me ybih.ttt run scoreboard players set #tok ybih.ttt 1`,
   );
-  lines.push('# 对不上就作废。正在被核对的人自己不在房里那种情况，由 ttt_tick 的另一条管');
+  lines.push('# 对不上就作废。');
+  lines.push('# 「正在被核对的人自己不在房里」那种情况由 ttt_tick 的另一条独立管（那条按距离判，');
+  lines.push('# 与本函数无调用关系）—— 写在这里只是提醒读者别把这句当成漏了兜底');
   lines.push('execute if score #tok ybih.ttt matches 0 run function ybih:room/ttt_abort');
   return file(...lines);
 }
@@ -566,28 +588,65 @@ function genTttSeat() {
     '# 只能靠 @a[scores={ybih.rseat=i}] 一位位去问',
     '# 已经有位子的人不动 —— 每轮换人都可能重走进房流程，重排会让名单乱跳',
     '',
+    '# 占用靠 #rs1..#rs12 这组假玩家维持，而且**只增不减**：',
+    '# @a 选不中离线玩家，掉线的人照样占着 5 号位，可是按「房里现在谁坐着 5 号」',
+    '# 现算出来的表里他是空的 —— 新进来的人于是也坐上 5 号，等他重连就两人同号，',
+    '# 名单上的显示名选择器带 limit=1，其中一人就此从名单上消失、别人再也点不到他。',
+    '# 所以这里只补记「在线且坐着 i 号」的人，绝不清零：',
+    '# 真要放掉一个位子，只能由拿到它的人自己在交回名单位时一起放（room/ttt_release）。',
+    '# 代价是「进了房又退服、再也没回来」的人会占着位子到本轮结束 ——',
+    '# 每轮的开局与轮末都会调 room/ttt_reset 把整张表连同名单位一起清空，漏不了一整局',
+    '',
   ];
-  for (let i = 1; i <= TTT_ROSTER; i += 1) {
-    lines.push(`scoreboard players set #rs${i} ybih.ttt 0`);
-  }
-  lines.push('');
   for (let i = 1; i <= TTT_ROSTER; i += 1) {
     lines.push(
       `execute ${AT_ROOM} as @a[tag=ybih_player,scores={${T_SEAT}=${i}},distance=..12] run scoreboard players set #rs${i} ybih.ttt 1`,
     );
   }
   lines.push('');
-  lines.push('# 从 1 号位往下试，坐上第一个空位就成了；后面几位看到「已经有位子」自然跳过');
+  lines.push('# 从 1 号位往下试，坐上第一个空位就成了；后面几位看到「已经有位子」自然跳过。');
+  lines.push('# 空位判据写 unless ... matches 1.. 而不是 matches 0：条目可能压根不存在');
+  lines.push('# （reset * 会把它删掉），「matches 0」对没有条目的人不成立');
   for (let i = 1; i <= TTT_ROSTER; i += 1) {
     lines.push(
-      `execute ${AT_ROOM} unless score @s ${T_SEAT} matches 1.. if score #rs${i} ybih.ttt matches 0 run scoreboard players set @s ${T_SEAT} ${i}`,
+      `execute ${AT_ROOM} unless score @s ${T_SEAT} matches 1.. unless score #rs${i} ybih.ttt matches 1.. run scoreboard players set @s ${T_SEAT} ${i}`,
     );
   }
   lines.push('');
-  lines.push('# 满员要说一声，不然他按了刷新却看不到自己，只会以为坏了');
+  lines.push('# 坐上位子就立刻把表补上，同 tick 里后面的人不会再抢同一个号');
+  for (let i = 1; i <= TTT_ROSTER; i += 1) {
+    lines.push(
+      `execute ${AT_ROOM} if score @s ${T_SEAT} matches ${i} run scoreboard players set #rs${i} ybih.ttt 1`,
+    );
+  }
+  lines.push('');
+  lines.push('# 满员要说一声，不然他按了刷新却看不到自己，只会以为坏了。');
+  lines.push('# 判据写 unless ... matches 1.. 而不是 matches 0：');
+  lines.push('# room/ttt_reset 用的是 reset *（那是唯一能清掉离线玩家的写法），');
+  lines.push('# 它会把条目整个删掉而不只是置 0，没分到位子的人这时**根本没有这一项** ——');
+  lines.push('# 「matches 0」对没有条目的人是不成立的，照那样写满员时就一句提示都没有');
   lines.push(
-    `execute ${AT_ROOM} if score @s ${T_SEAT} matches 0 run tellraw @s {{TXT_S}}等待室名单满了（${TTT_ROSTER} 位），先看别人下{{TXT_M}}yellow{{TXT_E}}`,
+    `execute ${AT_ROOM} unless score @s ${T_SEAT} matches 1.. run tellraw @s {{TXT_S}}等待室名单满了（${TTT_ROSTER} 位），先看别人下{{TXT_M}}yellow{{TXT_E}}`,
   );
+  return file(...lines);
+}
+
+// 交回名单位：本人的 rseat 与对应那一个 #rsN 必须一起放。
+// 只清 rseat 不清 #rsN 的话，位子会被永久占着（分配只看 #rsN），
+// 房里明明有空位，新来的人却被告知「名单满了」
+function genTttRelease() {
+  const lines = [
+    '# ybih:room/ttt_release —— 交回名单位（执行者本人）',
+    '# 名单位的占用表是只增不减的（见 room/ttt_seat 里的说明），',
+    '# 所以放掉一个位子只能在这里做，而且两处状态必须成对清',
+    '',
+  ];
+  for (let i = 1; i <= TTT_ROSTER; i += 1) {
+    lines.push(
+      `execute if score @s ${T_SEAT} matches ${i} run scoreboard players set #rs${i} ybih.ttt 0`,
+    );
+  }
+  lines.push(`scoreboard players set @s ${T_SEAT} 0`);
   return file(...lines);
 }
 
@@ -636,9 +695,7 @@ function genTttInvite(i) {
   lines.push('');
   lines.push('# 我若还停在「刚下完」（上一局的对手还在等着再来一局），先把它作废再登记新的。');
   lines.push('# 不先清掉，旧对手那边会一直等不到我，得靠每秒核对才发现 —— 这里当场收干净。');
-  lines.push('# #t_quiet 显式归零：别的入口（拒绝/取消/离座）可能刚把它置成 1 还没轮到下一秒复位，');
-  lines.push('# 那会让我这边静悄悄地走掉，旧对手干等着我点【再来一局】却不知道这局已经散了');
-  lines.push('scoreboard players set #t_quiet ybih.ttt 0');
+  lines.push('# abort 里那句通知正好是发给旧对手的：他会当场知道这局散了，不必干等着');
   lines.push(
     `execute if score #t_ok ybih.ttt matches 1 if score @s ${T_STATE} matches ${ST_DONE} run function ybih:room/ttt_abort`,
   );
@@ -730,12 +787,11 @@ function genTttExit(name, head, message, notes = []) {
     `# ybih:room/${name} —— ${head}`,
     ...notes.map((s) => `# ${s}`),
     '# 机械上都是「把这一对拆掉」：先把自己的话说了，再让 ttt_abort 收干净两边。',
-    '# #t_quiet = 1 让 abort 闭嘴，免得同一件事提示两遍',
+    '# 这两句通知的收件人不同 —— 上面那句给执行者、abort 里那句给对手，',
+    '# 所以没有「说重了」的问题，任何形式的抑制开关都是多余的',
     '',
-    'scoreboard players set #t_quiet ybih.ttt 1',
     `execute if score @s ${T_STATE} matches 1.. run tellraw @s {{TXT_S}}${message}{{TXT_M}}yellow{{TXT_E}}`,
     'function ybih:room/ttt_abort',
-    'scoreboard players set #t_quiet ybih.ttt 0',
   );
 }
 
@@ -786,7 +842,7 @@ const FAKES = [
   '#t_tmp',
   '#t_ok',
   '#t_found',
-  '#t_quiet',
+  '#has_opp',
   '#t_opp',
   '#myslot',
   '#opprole',
@@ -798,9 +854,12 @@ function genTttReset() {
     '# 每一处「清空对局数据」的地方都要调它，少一处就会把上一局的残局带进下一局',
     '',
   ];
-  for (const obj of [T_STATE, T_ROLE, T_OPP, T_OPPS, T_TURN, T_RES, T_FIRST, T_TOLD, T_SEAT]) {
+  for (const obj of [T_STATE, T_ROLE, T_OPP, T_OPPS, T_TURN, T_RES, T_FIRST, T_TOLD]) {
     lines.push(`scoreboard players set @a ${obj} 0`);
   }
+  // 名单位用 reset * 而不是 set @a 0：@a 够不到离线玩家，掉线者身上那份旧的 rseat
+  // 会跨过这次清零留下来，他重连时就会顶掉别人已经坐上的号（见 room/ttt_seat）
+  lines.push(`scoreboard players reset * ${T_SEAT}`);
   for (let n = 1; n <= TTT_CELLS; n += 1) {
     lines.push(`scoreboard players set @a ${cell(n)} 0`);
   }
@@ -822,8 +881,6 @@ function genTttTick() {
     '# ybih:room/ttt_tick —— 每秒三件事：核对对局、提示邀请、收回离场者的名单位',
     '# 由 room/second_tick 每秒调用；所有判断都按 @s 取数，与同时开了几局无关',
     '',
-    'scoreboard players set #t_quiet ybih.ttt 0',
-    '',
     '# ① 在房里且有局面的人：算对手名单位 + 核对这一局还在不在',
     `execute ${AT_ROOM} as @a[tag=ybih_player,tag=!ybih_current,scores={${T_STATE}=1..},distance=..12] run function ybih:room/ttt_verify`,
     '# ② 刚进入邀请状态的人：提示一次（told 标记防重发）',
@@ -831,8 +888,10 @@ function genTttTick() {
     '',
     '# ③ 不在房里却还挂着局面的（被拎去藏、走出房间、掉线重连）一律作废',
     `execute ${AT_ROOM} as @a[tag=ybih_player,scores={${T_STATE}=1..}] unless entity @s[distance=..12] run function ybih:room/ttt_abort`,
-    '# 名单位跟着收回：离开房间的人不该再占着一个位子',
-    `execute ${AT_ROOM} as @a[tag=ybih_player,scores={${T_SEAT}=1..}] unless entity @s[distance=..12] run scoreboard players set @s ${T_SEAT} 0`,
+    '# 名单位跟着收回：离开房间的人不该再占着一个位子。',
+    '# 掉线的人够不到（@a 只遍历在线玩家），他那份 rseat 会留到下次开局或轮末的',
+    '# ttt_reset —— 那一步用的是 reset *，离线的人一样清得掉',
+    `execute ${AT_ROOM} as @a[tag=ybih_player,scores={${T_SEAT}=1..}] unless entity @s[distance=..12] run function ybih:room/ttt_release`,
   );
 }
 
@@ -865,6 +924,7 @@ export function buildTttGenerated(tttBookCommand) {
     'data/ybih/function/room/ttt_notice.mcfunction': () => genTttNotice(),
     'data/ybih/function/room/ttt_roster.mcfunction': () => genTttRoster(),
     'data/ybih/function/room/ttt_seat.mcfunction': () => genTttSeat(),
+    'data/ybih/function/room/ttt_release.mcfunction': () => genTttRelease(),
     'data/ybih/function/room/ttt_invite.mcfunction': () => genTttInviteDispatch(),
     'data/ybih/function/room/ttt_refresh.mcfunction': () => genTttRefresh(),
     'data/ybih/function/room/ttt_show.mcfunction': () => genTttShow(),

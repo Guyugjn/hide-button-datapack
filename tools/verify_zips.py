@@ -5,8 +5,13 @@
   · CRC 完好 —— 只有会校验 CRC 的工具才认得出损坏，资源管理器与 Expand-Archive 不会
   · pack.mcmeta 位于 zip 根部 —— 多套一层目录游戏就读不到，表现为数据包列表里看不见
   · 三个包齐全，且各自条目数落在合理范围
-  · 产物比 src/ 新 —— 这一条专门拦「旧产物冒充新产物」：结构检查全过、
+  · 产物比源文件新 —— 这一条专门拦「旧产物冒充新产物」：结构检查全过、
     但内容是上一次构建留下的，跑完这个脚本就拿去部署等于白测一轮
+
+    源文件必须同时算上 src/ 与 tools/：**生成器全在 tools/ 里**
+    （build.mjs 铺出绝大部分函数，ttt.mjs 铺出全部棋类函数），
+    只盯 src/ 的话，改了生成器却不重新构建，这里会照样放行 ——
+    dist/ 里躺着的还是旧产物，而校验一路绿灯
 
 用法：python3 tools/verify_zips.py
 
@@ -27,7 +32,10 @@ EXPECTED = [
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DIST = os.path.join(ROOT, "dist")
-SRC = os.path.join(ROOT, "src")
+# 产物由这两处共同决定，新鲜度必须两处都看：
+#   src/   手写的函数、进度、标签
+#   tools/ 构建脚本与生成器（改这里同样会让 dist/ 过期）
+SOURCE_DIRS = [os.path.join(ROOT, "src"), os.path.join(ROOT, "tools")]
 
 
 def stamp(mtime):
@@ -35,17 +43,18 @@ def stamp(mtime):
 
 
 def newest_source():
-    """返回 src/ 下最近一次修改的（路径, mtime）；读不到时返回 None。"""
+    """返回源目录下最近一次修改的（路径, mtime）；读不到时返回 None。"""
     newest = None
-    for dirpath, _dirnames, filenames in os.walk(SRC):
-        for fn in filenames:
-            full = os.path.join(dirpath, fn)
-            try:
-                mtime = os.path.getmtime(full)
-            except OSError:
-                continue  # 遍历途中文件被删掉，跳过即可
-            if newest is None or mtime > newest[1]:
-                newest = (full, mtime)
+    for source_dir in SOURCE_DIRS:
+        for dirpath, _dirnames, filenames in os.walk(source_dir):
+            for fn in filenames:
+                full = os.path.join(dirpath, fn)
+                try:
+                    mtime = os.path.getmtime(full)
+                except OSError:
+                    continue  # 遍历途中文件被删掉，跳过即可
+                if newest is None or mtime > newest[1]:
+                    newest = (full, mtime)
     return newest
 
 
@@ -53,7 +62,7 @@ errors = []
 
 src_newest = newest_source()
 if src_newest is None:
-    errors.append("读不到源文件目录 src/，无法判断产物新旧")
+    errors.append("读不到源文件目录 src/ 与 tools/，无法判断产物新旧")
 else:
     print("源文件最新改动：%s（%s）" % (os.path.relpath(src_newest[0], ROOT), stamp(src_newest[1])))
 

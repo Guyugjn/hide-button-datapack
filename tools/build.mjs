@@ -204,6 +204,30 @@ function genHintScan(pack) {
   return lines.join('\n') + '\n';
 }
 
+// 超时欠账位图：源编号放在 #owed_src 上，这里算出它在位图里的掩码 #owed_bit
+// 与取模用的模数 #owed_pow（2^src），位号 = 编号 - 1。
+// 用位图而不是「一个编号一格」：连续两次「超时且掉线」时，后一笔不会把前一笔顶掉。
+// 位宽与 ybih.hit 同为 30（再往上 2^src 溢出 int32）；越界时两者留 0，调用方据此跳过
+function genOwedBit() {
+  const lines = [
+    '# ybih:game/owed_bit —— 按 #owed_src 算出超时欠账位图里的掩码与模数',
+    '# #owed_bit = 2^(src-1) 是掩码，#owed_pow = 2^src 是取模用的模数',
+    '# 编号不在 1..30 时两者都为 0，调用方看到 0 就什么都不做',
+    '',
+    'scoreboard players set #owed_bit ybih.config 0',
+    'scoreboard players set #owed_pow ybih.config 0',
+  ];
+  for (let id = 1; id <= HIT_BITS; id++) {
+    lines.push(
+      `execute if score #owed_src ybih.config matches ${id} run scoreboard players set #owed_bit ybih.config ${2 ** (id - 1)}`,
+    );
+    lines.push(
+      `execute if score #owed_src ybih.config matches ${id} run scoreboard players set #owed_pow ybih.config ${2 ** id}`,
+    );
+  }
+  return lines.join('\n') + '\n';
+}
+
 // 记录按钮朝向：材质 × 朝向逐组合判定，给新标记打上朝向标签
 function genTagFace(pack) {
   const lines = ['# ybih:button/tag_face —— 记录按钮的朝向状态', ''];
@@ -463,6 +487,7 @@ const GENERATED = {
   'data/ybih/function/button/press_tick.mcfunction': genPressTick,
   'data/ybih/function/button/press_scan.mcfunction': genPressScan,
   'data/ybih/function/button/hit_bit.mcfunction': genHitBit,
+  'data/ybih/function/game/owed_bit.mcfunction': genOwedBit,
   'data/ybih/function/button/protect_check.mcfunction': genProtectCheck,
   'data/ybih/function/button/protect_scan.mcfunction': genProtectScan,
   'data/ybih/function/button/protect_restore.mcfunction': genProtectRestore,
