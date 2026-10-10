@@ -363,12 +363,15 @@ zip，并且会把它上一次留下的同名旧 zip 一并删掉** —— 只�
 「本次成功的新包」和「上一次成功的旧包」，人工扫一眼会以为三个包都构建成功了。
 不管哪种失败，退出码都是 1，**部署前请确认退出码**。
 
-构建脚本不依赖第三方包，只需要 Node 18+。
+构建脚本不依赖第三方包，只需要 Node 20+（与 CI 里 `actions/setup-node` 用的版本一致）。
 
 ```bash
 python3 tools/verify_zips.py   # 校验产物的 CRC 与结构（可选）
 node tools/check_md.js         # 检查文档格式（可选）
 ```
+
+`tools/check_md.js` **不带参数时只检查 `README.md`**，另外两份文档要显式带上文件名
+（`node tools/check_md.js ybih_memory.md`），否则它们不会被检查到。
 
 `tools/verify_zips.py` 只做 CRC 与结构检查，看不出内容新旧，所以它另外会比对产物与
 **源文件**的时间戳，产物比源文件旧就报警。源文件同时算上 `src/` 与 `tools/` 两处 ——
