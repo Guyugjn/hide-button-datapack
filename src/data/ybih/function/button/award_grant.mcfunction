@@ -25,5 +25,16 @@ execute if score #deny ybih.config matches 0 if score #hit_now ybih.config >= #h
 scoreboard players operation #gained ybih.config = @e[tag=ybih_active,limit=1] ybih.value
 execute if score #deny ybih.config matches 0 if score #gained ybih.config matches ..0 run scoreboard players set #deny ybih.config 3
 
+# 这是不是这个按钮**第一次**被找到 —— 物主的保底分会不会因这次按下作废，就看它。
+# **必须在位图写入之前读**（位图由 award_pay 落，写进去之后 hit 就不是 0 了）。
+#
+# 判据是 hit 全零，不能用 #hit_now（那是 hit 对本位取模的结果）：#hit_now == 0
+# 只能说明「本位没置过」，先按的人编号更大时（例如 id=5 先按、id=2 后按，
+# 16 % 4 == 0）会误判成没人按过，于是第 2 个人按下时也发「保底分没了」
+scoreboard players set #first_find ybih.config 0
+scoreboard players set #hit_all ybih.config -1
+execute if score #deny ybih.config matches 0 run scoreboard players operation #hit_all ybih.config = @e[tag=ybih_active,limit=1] ybih.hit
+execute if score #deny ybih.config matches 0 if score #hit_all ybih.config matches 0 run scoreboard players set #first_find ybih.config 1
+
 execute if score #deny ybih.config matches 0 run function ybih:button/award_pay
 execute if score #deny ybih.config matches 1.. run function ybih:button/award_deny

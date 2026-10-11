@@ -45,6 +45,9 @@ scoreboard players set #tick ybih.config 0
 scoreboard players set #gained ybih.config 0
 scoreboard players set #ranked ybih.config 0
 scoreboard players set #seekers_total ybih.config 0
+# 本局的保底结算还没做过。每轮开局都要归零：gate 只在结算那一刻置位，
+# 不在这里清的话第二轮的保底分会被上一轮留下的 1 整段吃掉
+scoreboard players set #bonus_done ybih.config 0
 scoreboard players set #best_score ybih.config -2147483648
 scoreboard players set #best_finds ybih.config -1
 scoreboard players set #best_tfirst ybih.config 999999

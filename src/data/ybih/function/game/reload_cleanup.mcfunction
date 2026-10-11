@@ -37,6 +37,8 @@ tag @a remove ybih_ranked
 tag @a remove ybih_pressed
 tag @a remove ybih_user
 tag @a remove ybih_ray_found
+# 按下播报用的临时标记，见 cleanup_end 同名一条
+tag @a remove ybih_presser
 tag @a remove ybih_gm_survival
 tag @a remove ybih_gm_creative
 tag @a remove ybih_gm_adventure

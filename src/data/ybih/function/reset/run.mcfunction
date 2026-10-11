@@ -51,6 +51,7 @@ tag @a remove ybih_ranked
 tag @a remove ybih_pressed
 tag @a remove ybih_user
 tag @a remove ybih_ray_found
+tag @a remove ybih_presser
 tag @a remove ybih_gm_survival
 tag @a remove ybih_gm_creative
 tag @a remove ybih_gm_adventure
@@ -71,5 +72,8 @@ scoreboard players set #tick ybih.config 0
 scoreboard players set #gained ybih.config 0
 scoreboard players set #ranked ybih.config 0
 scoreboard players set #seekers_total ybih.config 0
+# 保底结算的闸门与账目属于本局，一并归零
+scoreboard players set #bonus_done ybih.config 0
+scoreboard players set #bonus_count ybih.config 0
 function ybih:game/bar_hide
 tellraw @a {{TXT_S}}[你的按钮我来藏] 已重置{{TXT_M}}green{{TXT_E}}

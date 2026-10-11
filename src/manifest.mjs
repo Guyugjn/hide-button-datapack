@@ -1,4 +1,4 @@
-﻿// ybih 数据包构建配置：定义 3 个分版本包的差异
+// ybih 数据包构建配置：定义 3 个分版本包的差异
 // 运行 node tools/build.mjs 生成 dist/ 下的产物
 
 import { HINT_RADII } from './book.mjs';
@@ -41,7 +41,6 @@ export const TEXT_JSON = {
   SCORE_GAINED: '{"score":{"name":"#gained","objective":"ybih.config"}}',
   SCORE_RANK: '{"score":{"name":"#ranked","objective":"ybih.config"}}',
   SCORE_SEEKERS: '{"score":{"name":"#seekers_total","objective":"ybih.config"}}',
-  SCORE_BTNLEFT: '{"score":{"name":"#btn_left","objective":"ybih.config"}}',
   SCORE_ROUNDSTOTAL: '{"score":{"name":"#rounds_total","objective":"ybih.config"}}',
   SCORE_CYCLE: '{"score":{"name":"#cycle","objective":"ybih.config"}}',
   SCORE_CD_MIN: '{"score":{"name":"#cd_min","objective":"ybih.config"}}',
@@ -74,6 +73,14 @@ export const TEXT_JSON = {
   BTN_TTT_AGAIN:
     '{"text":"【再来一局】","color":"green","clickEvent":{"action":"run_command","value":"/trigger ybih.trigger set 32"}}',
   SCORE_MYRANK: '{"score":{"name":"#my_rank","objective":"ybih.config"}}',
+  // 保底分与局势：藏到底的人数、每人拿几分、搜寻期场上还剩多少分。
+  // 两种方言各写一份 —— 漏掉一份会让那个包的文案变成字面量
+  SCORE_BONUS_COUNT: '{"score":{"name":"#bonus_count","objective":"ybih.config"}}',
+  SCORE_BONUS_TOTAL: '{"score":{"name":"#bonus_total","objective":"ybih.config"}}',
+  SCORE_BONUS_AMT: '{"score":{"name":"#bonus_amt","objective":"ybih.config"}}',
+  SCORE_POINTS: '{"score":{"name":"#points_left","objective":"ybih.config"}}',
+  SCORE_HINTBAND: '{"score":{"name":"#hint_band","objective":"ybih.config"}}',
+  SCORE_BTNREMAIN: '{"score":{"name":"#btn_remain","objective":"ybih.config"}}',
   // 九宫格的两种棋子与一格空白。棋盘要在聊天栏逐行重贴，棋子用静态文本，
   // 空格才是可点的按钮。两种方言各写一份，生成器只引用记号。
   //
@@ -106,7 +113,6 @@ export const TEXT_SNBT = {
   SCORE_GAINED: "{score:{name:'#gained',objective:'ybih.config'}}",
   SCORE_RANK: "{score:{name:'#ranked',objective:'ybih.config'}}",
   SCORE_SEEKERS: "{score:{name:'#seekers_total',objective:'ybih.config'}}",
-  SCORE_BTNLEFT: "{score:{name:'#btn_left',objective:'ybih.config'}}",
   SCORE_ROUNDSTOTAL: "{score:{name:'#rounds_total',objective:'ybih.config'}}",
   SCORE_CYCLE: "{score:{name:'#cycle',objective:'ybih.config'}}",
   SCORE_CD_MIN: "{score:{name:'#cd_min',objective:'ybih.config'}}",
@@ -138,6 +144,12 @@ export const TEXT_SNBT = {
   BTN_TTT_AGAIN:
     "{text:'【再来一局】',color:'green',click_event:{action:'run_command',command:'/trigger ybih.trigger set 32'}}",
   SCORE_MYRANK: "{score:{name:'#my_rank',objective:'ybih.config'}}",
+  SCORE_BONUS_COUNT: "{score:{name:'#bonus_count',objective:'ybih.config'}}",
+  SCORE_BONUS_TOTAL: "{score:{name:'#bonus_total',objective:'ybih.config'}}",
+  SCORE_BONUS_AMT: "{score:{name:'#bonus_amt',objective:'ybih.config'}}",
+  SCORE_POINTS: "{score:{name:'#points_left',objective:'ybih.config'}}",
+  SCORE_HINTBAND: "{score:{name:'#hint_band',objective:'ybih.config'}}",
+  SCORE_BTNREMAIN: "{score:{name:'#btn_remain',objective:'ybih.config'}}",
   TTT_X: "{text:'【✕】',color:'red'}",
   TTT_O: "{text:'【◯】',color:'aqua'}",
   TTT_SP: "{text:'【　】'}",

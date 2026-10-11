@@ -4,12 +4,24 @@
 # 旧存档没有新设置项的值，补一份默认；已经设过的（含关闭态）不会被覆盖
 execute unless score #mode ybih.config matches 1.. run scoreboard players set #mode ybih.config 1
 execute unless score #confirm ybih.config matches 1.. run scoreboard players set #confirm ybih.config 1
-execute unless score #border_on ybih.config matches 0.. run scoreboard players set #border_on ybih.config 0
-execute unless score #border_r ybih.config matches 0.. run scoreboard players set #border_r ybih.config 100
+# 活动边界默认开启、半径 80。这不是审美取舍：「藏到底的保底分」只有在搜寻空间有界时
+# 才代表「藏得好」—— 世界无界时 60 秒的藏匿时限足够跑到几百格外，而搜寻期只有 600 秒，
+# 那些按钮根本找不到，于是人人拿满保底分、全员并列，这一局还会先白耗完倒计时才结算
+execute unless score #border_on ybih.config matches 0.. run scoreboard players set #border_on ybih.config 1
+execute unless score #border_r ybih.config matches 0.. run scoreboard players set #border_r ybih.config 80
 execute unless score #hint_range ybih.config matches 1.. run scoreboard players set #hint_range ybih.config 10
 execute unless score #showcase_on ybih.config matches 0.. run scoreboard players set #showcase_on ybih.config 1
 # 旧版本的 150 / 200 档已经取消，落到新档位的上限 100
 execute if score #border_r ybih.config matches 150.. run scoreboard players set #border_r ybih.config 100
+
+# 一次性迁移：上面那两条只补「从未设置过」的存档，而老存档里 border_on / border_r 早就写死了值，
+# 补默认对它们无效 —— 于是这次平衡修复对最需要它的老存档静默失效。所以显式迁一次，且只迁一次。
+# 半径只在「仍是旧默认 100」时才动，已经手工调成别的档位的不覆盖。
+# **代价（有意接受）**：连「主动关掉边界」这个选择也会被一并覆盖，这是一次性侵入；
+# 书里第 5 页点一下「边界关」就回去了，之后 #border_migrated 已置位，再也不会被改
+execute unless score #border_migrated ybih.config matches 1.. run scoreboard players set #border_on ybih.config 1
+execute unless score #border_migrated ybih.config matches 1.. if score #border_r ybih.config matches 100 run scoreboard players set #border_r ybih.config 80
+execute unless score #border_migrated ybih.config matches 1.. run scoreboard players set #border_migrated ybih.config 1
 
 scoreboard players set #state ybih.config 0
 scoreboard players set #timer ybih.config 0
@@ -26,7 +38,7 @@ scoreboard players set #best ybih.config 0
 scoreboard players set #more ybih.config 0
 scoreboard players set #ray_step ybih.config 0
 scoreboard players set #ray_owner ybih.config 0
-scoreboard players set #hint_hit ybih.config 0
+# 提示扫描时暂存「这位玩家自己的编号」：hint_probe 靠它排除自己的按钮
 scoreboard players set #hint_self ybih.config 0
 scoreboard players set #press_owner ybih.config 0
 # 本局编号必须跨 reload 保持递增：一旦从头开始，上一局遗留在未加载区块里的按钮标记
@@ -50,6 +62,10 @@ scoreboard players set #hit_ok ybih.config 0
 scoreboard players set #seekers_total ybih.config 0
 # 按钮递减后的余额：与 #gained（这次拿到的分）分开记，不要互相覆盖
 scoreboard players set #btn_left ybih.config 0
+# 本次取走后还剩几份：按下播报要它，由 award_score 在递减之前算好
+scoreboard players set #btn_remain ybih.config 0
+# 按下播报用：#press_live 物主在不在线（决定走带名字还是不带名字那版）
+scoreboard players set #press_live ybih.config 0
 # 射线锁定按钮时暂存读到的编号
 scoreboard players set #use_bid ybih.config 0
 scoreboard players set #button_count ybih.config 0
@@ -108,6 +124,63 @@ scoreboard players set #show_owner ybih.config 0
 # 收回保不住的按钮时，用它暂存物主编号
 scoreboard players set #fix_owner ybih.config 0
 
+# 保底分结算（见 game/bonus_settle / bonus_run / bonus_pay）：
+#   #bonus_done  本轮的结算做过没有，gate 用；每轮开局由 start_begin / next_round 归零
+#   #bonus_amt   这一轮每位「藏到底」的人能拿几分 = #player_count / 2
+#   #bonus_count 本轮**实际发出去**了几份（物主离线就发不出去）
+#   #bonus_total 本轮有几个按钮一次都没被找到（含物主离线、发不出去的那些）
+#   #bonus_owner 当前这个按钮的物主编号、#bonus_got 他这次算不算发成功
+scoreboard players set #bonus_done ybih.config 0
+scoreboard players set #bonus_amt ybih.config 0
+scoreboard players set #bonus_count ybih.config 0
+scoreboard players set #bonus_total ybih.config 0
+scoreboard players set #bonus_owner ybih.config 0
+scoreboard players set #bonus_got ybih.config 0
+
+# 搜寻提示的档位（见 game/hint_scan / hint_one）：
+#   #hint_band 最近的别人的按钮落在哪一档半径里，0 = 配置半径内一个都没有
+#   #band_r    当前正在试的那一档，由 hint_scan 逐档写入
+scoreboard players set #hint_band ybih.config 0
+scoreboard players set #band_r ybih.config 0
+# 残局八向方位（见 game/hint_dir / hint_dir_cmp）：
+#   #late_from 进入残局的剩余秒数门槛 = #search_time / 3，进搜寻时算一次
+#   #hd_px/#hd_pz 玩家坐标、#hd_bx/#hd_bz 按钮坐标；#hd_dx/#hd_dz 差值，
+#   #   #hd_ax/#hd_az 各自取绝对值后，用「一个轴是否大于另一个轴的两倍」分出
+#   #   主轴（东西 / 南北）与对角；#hd_2z 与 #hd_a2x 是那两个两倍值
+#   #   #hd_sx/#hd_sz 正负号（1 = 正方向），#hd_axis 1 东西 / 2 南北 / 3 对角
+#   **坐标一律不乘 100**：现有 border_edge_check 那套 ×100 定标在坐标接近
+#   ±3×10⁷ 时会撞 int32 回绕，而方位判定只要符号与量级，整数部分足够
+scoreboard players set #late_from ybih.config 0
+scoreboard players set #hd_px ybih.config 0
+scoreboard players set #hd_pz ybih.config 0
+scoreboard players set #hd_bx ybih.config 0
+scoreboard players set #hd_bz ybih.config 0
+scoreboard players set #hd_dx ybih.config 0
+scoreboard players set #hd_dz ybih.config 0
+scoreboard players set #hd_ax ybih.config 0
+scoreboard players set #hd_az ybih.config 0
+scoreboard players set #hd_2z ybih.config 0
+scoreboard players set #hd_a2x ybih.config 0
+scoreboard players set #hd_sx ybih.config 0
+scoreboard players set #hd_sz ybih.config 0
+scoreboard players set #hd_axis ybih.config 0
+#   #hd_pid 是发起这次提示的玩家编号：方位文案在按钮标记身上发，靠它把玩家选回来
+scoreboard players set #hd_pid ybih.config 0
+
+# 搜寻期的局势统计（见 game/points_count）：
+#   #points_left  场上还没被取走的分总和
+#   #unfound_count 一次都没被按过的按钮数（保底窗口还开着的那些）
+#   #unfound_prev 上一秒的值，用来抓「刚刚全被找到」这个转折
+scoreboard players set #points_left ybih.config 0
+scoreboard players set #unfound_count ybih.config 0
+scoreboard players set #unfound_prev ybih.config -1
+
+# 首次被找到的探针（见 button/award_grant 与 award_score）：
+# 1 = 这次按下是这个按钮的第一次，物主的保底分作废，要单独通知他
+# #hit_all 是读位图全值的暂存，判「全零」用它而不是 #hit_now（见 award_grant 的注释）
+scoreboard players set #first_find ybih.config 0
+scoreboard players set #hit_all ybih.config 0
+
 # 探测队伍是否已存在时的暂存分
 scoreboard players set #team_tmp ybih.config 0
 
@@ -142,6 +215,8 @@ scoreboard players set #c20 ybih.config 20
 scoreboard players set #c60 ybih.config 60
 scoreboard players set #c100 ybih.config 100
 scoreboard players set #c2 ybih.config 2
+# 求三分之一（残局门槛 #late_from）用
+scoreboard players set #c3 ybih.config 3
 # 求最小值时的哨兵：比任何真实编号都大
 scoreboard players set #c_max ybih.config 2147483647
 # 等待室：粒子节拍（2 秒一次）

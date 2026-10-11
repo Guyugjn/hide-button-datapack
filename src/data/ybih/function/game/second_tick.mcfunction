@@ -9,6 +9,9 @@ execute if score #state ybih.config matches 3 run scoreboard players remove #hin
 
 function ybih:game/action_hint
 
+# 局势统计要排在 bar_update 之前：Boss 栏的搜寻态标题里带着剩余总分
+execute if score #state ybih.config matches 3 run function ybih:game/points_count
+
 execute if score #state ybih.config matches 3 if score #hint_timer ybih.config matches ..0 run function ybih:game/hint_all
 execute if score #state ybih.config matches 1 if score #timer ybih.config matches ..0 run function ybih:game/enter_turn
 execute if score #state ybih.config matches 2 if score #hide_timer ybih.config matches ..0 run function ybih:game/turn_timeout

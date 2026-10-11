@@ -3,11 +3,12 @@
 #
 # #gained 是「这次拿到的分」，计分要用它，所以递减后的余额另记一个变量，不要覆盖它。
 # 余额为 0 说明这个按钮的分已经全部被取走
+#
+# 「还剩几分 / 分被拿完」这两句原先只发给按下者，现在由 button/press_broadcast
+# 统一播报（它同时告诉全场谁拿走了几分），所以这里不再重复发私聊
 
 scoreboard players remove @e[tag=ybih_active,limit=1] ybih.value 1
 scoreboard players operation #btn_left ybih.config = @e[tag=ybih_active,limit=1] ybih.value
-execute if score #btn_left ybih.config matches 1.. run tellraw @s [{{TXT_S}}这个按钮还剩 {{TXT_E}},{{SCORE_BTNLEFT}},{{TXT_S}} 分{{TXT_M}}gray{{TXT_E}}]
-execute if score #btn_left ybih.config matches ..0 run tellraw @s {{TXT_S}}这个按钮的分被拿完了，它已经收走{{TXT_M}}gray{{TXT_E}}
 execute if score #btn_left ybih.config matches ..0 run function ybih:button/consume
 # 轮流模式一轮只有一个按钮，它的分被拿完就等于每位搜寻者都取过一份，可以收官。
 # 经典模式按约定只走搜寻倒计时，这里不结束

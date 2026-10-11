@@ -38,7 +38,7 @@ export function textWidth(text) {
 const hintRadiusItems = HINT_RADII.map((r, i) => ({
   label: `${r} 格`,
   cmd: `function ybih:config/hint_r${r}`,
-  tip: `探测半径：只看半径 ${r} 格内有没有别人的按钮`,
+  tip: `探测半径：别人的按钮要在这个半径内才会被提示`,
   sameRow: i % 2 === 0,
 }));
 
@@ -149,13 +149,15 @@ export const BOOK_PAGES = [
   },
   {
     title: '冷热提示',
-    note: '只说有没有，不说在哪',
-    lines: ['秒数是间隔，格数是半径'],
+    note: '报距离档位，残局给方位',
+    // compact：这一页原本就正好 12 行，正文多一行就会顶掉页脚
+    compact: true,
+    lines: ['秒数是间隔，格数是半径', '最后三分之一更密'],
     items: [
-      { label: '15 秒', cmd: 'function ybih:config/hint_15', tip: '每隔多久提示一次附近有没有别人的按钮', sameRow: true },
-      { label: '30 秒', cmd: 'function ybih:config/hint_30', tip: '每隔多久提示一次附近有没有别人的按钮' },
-      { label: '60 秒', cmd: 'function ybih:config/hint_60', tip: '每隔多久提示一次附近有没有别人的按钮', sameRow: true },
-      { label: '120 秒', cmd: 'function ybih:config/hint_120', tip: '每隔多久提示一次附近有没有别人的按钮' },
+      { label: '15 秒', cmd: 'function ybih:config/hint_15', tip: '每隔多久提示一次最近的别人的按钮在多远', sameRow: true },
+      { label: '30 秒', cmd: 'function ybih:config/hint_30', tip: '每隔多久提示一次最近的别人的按钮在多远' },
+      { label: '60 秒', cmd: 'function ybih:config/hint_60', tip: '每隔多久提示一次最近的别人的按钮在多远', sameRow: true },
+      { label: '120 秒', cmd: 'function ybih:config/hint_120', tip: '每隔多久提示一次最近的别人的按钮在多远' },
       ...hintRadiusItems,
       { label: '关闭提示', cmd: 'function ybih:config/hint_off', color: 'dark_red', tip: '关掉冷热提示，完全靠自己找；半径设置会留着，下次开回来还是它' },
     ],
@@ -183,6 +185,9 @@ export const BOOK_PAGES = [
   },
   {
     title: '规则与计分',
+    // 这一页行数一直吃紧（正文 10 行 + 标题恰好填满 12 行的上限），
+    // 所以走 compact：省掉分隔线与空行那两行，把它让给正文
+    compact: true,
     lines: [
       '每个按钮都带着分',
       '　初始 = 参与人数 − 1',
@@ -192,6 +197,8 @@ export const BOOK_PAGES = [
       '谁先按谁分高',
       '分被拿光的按钮会消失',
       '分拿完就提前收官',
+      '没人找到的按钮有保底',
+      '　物主得 参与人数 ÷ 2',
       '同分再比发现次数与先后',
     ],
     items: [],

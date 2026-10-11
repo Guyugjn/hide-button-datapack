@@ -23,6 +23,8 @@ execute if entity @e[tag=ybih_center] as @a[tag=ybih_player] run tp @s @e[tag=yb
 scoreboard players set #state ybih.config 1
 scoreboard players operation #timer ybih.config = #prep_time ybih.config
 scoreboard players set #actionbar_timer ybih.config 20
+# 新一轮的保底结算重新开闸，见 game/bonus_settle
+scoreboard players set #bonus_done ybih.config 0
 
 title @a title [{{TXT_S}}第 {{TXT_E}},{{SCORE_ROUND}},{{TXT_S}} / {{TXT_E}},{{SCORE_ROUNDSTOTAL}},{{TXT_S}} 轮{{TXT_E}}]
 title @a subtitle {{TXT_S}}准备开始{{TXT_E}}

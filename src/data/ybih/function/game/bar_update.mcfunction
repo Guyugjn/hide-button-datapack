@@ -36,7 +36,7 @@ function ybih:game/bar_value
 # 三行都不指定 color，让 Boss 栏自身的颜色属性统管整条标题
 execute if score #state ybih.config matches 1 run bossbar set ybih:timer name [{{TXT_S}}第 {{TXT_E}},{{SCORE_ROUND}},{{TXT_S}} / {{TXT_E}},{{SCORE_ROUNDSTOTAL}},{{TXT_S}} 轮 · 准备中 · {{TXT_E}},{{SCORE_CD_MIN}},{{TXT_S}}:{{TXT_E}},{{SCORE_CD_S10}},{{SCORE_CD_S1}}]
 execute if score #state ybih.config matches 2 run bossbar set ybih:timer name [{{TXT_S}}第 {{TXT_E}},{{SCORE_ROUND}},{{TXT_S}} / {{TXT_E}},{{SCORE_ROUNDSTOTAL}},{{TXT_S}} 轮 · 藏匿中 · {{TXT_E}},{{SCORE_CD_MIN}},{{TXT_S}}:{{TXT_E}},{{SCORE_CD_S10}},{{SCORE_CD_S1}}]
-execute if score #state ybih.config matches 3 run bossbar set ybih:timer name [{{TXT_S}}第 {{TXT_E}},{{SCORE_ROUND}},{{TXT_S}} / {{TXT_E}},{{SCORE_ROUNDSTOTAL}},{{TXT_S}} 轮 · 搜寻中 · {{TXT_E}},{{SCORE_CD_MIN}},{{TXT_S}}:{{TXT_E}},{{SCORE_CD_S10}},{{SCORE_CD_S1}}]
+execute if score #state ybih.config matches 3 run bossbar set ybih:timer name [{{TXT_S}}第 {{TXT_E}},{{SCORE_ROUND}},{{TXT_S}} / {{TXT_E}},{{SCORE_ROUNDSTOTAL}},{{TXT_S}} 轮 · 搜寻中 · 剩 {{TXT_E}},{{SCORE_POINTS}},{{TXT_S}} 分 · {{TXT_E}},{{SCORE_CD_MIN}},{{TXT_S}}:{{TXT_E}},{{SCORE_CD_S10}},{{SCORE_CD_S1}}]
 
 # 颜色随剩余时间收紧：过半绿、两成以上黄、不足两成红
 execute if score #pct ybih.config matches 51.. run bossbar set ybih:timer color green

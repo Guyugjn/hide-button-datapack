@@ -189,18 +189,46 @@ function genRefundPending(pack) {
 }
 
 // 提示半径：`distance=..N` 是选择器参数、只收字面量，代入不了记分板，只能按档位逐条分派。
-// 不匹配的档位会被 if score 提前挡住，不会白遍历一遍实体
+//
+// 从「有 / 没有」升级为**档位化距离**：配置半径是 R 时，把 HINT_RADII 里所有 ≤ R 的档位
+// **由小到大**试一遍，第一个命中的档位就是「最近的别人的按钮落在哪一档」——内层优先，
+// 所以报出来的永远是包围那个按钮的最小档位，#hint_band 落在最近的按钮上。
+//
+// 为什么升序：档位是「半径含在内」的区间，5 格内的按钮同时也落在 10 格那份选择器里。
+// 降序试的话外圈先命中，就会把一个 3 格外的按钮报成「30 格内」。
+// 命中之后靠 `if score #hint_band matches 0` 停手，外圈不再重算，也就不会被覆盖。
+//
+// 共 6+5+4+3+2+1 = 21 条扫描行（每档一条），比原来固定 6 行多，但每条都带
+// `#hint_band matches 0` 前置，实际跑不满 —— 半径 10 时只走到前 2 档。
+//
+// 文案块也放在这里（而不是手写的 hint_one 里）：档位字面量只该出现在一处，
+// 由这份档位表统一生成，改 HINT_RADII 时文案自动跟着变。
 function genHintScan(pack) {
   const lines = [
-    '# ybih:game/hint_scan —— 按设定的探测半径扫一遍场上标记',
-    '# distance=..N 只收字面量、代入不了记分板，只能逐档分派',
+    '# ybih:game/hint_scan —— 按设定的探测半径扫一遍场上标记，得出最近的按钮落在哪一档',
+    '# distance=..N 只收字面量、代入不了记分板，只能逐档分派；升序试、内层优先',
+    '# #hint_band = 命中的档位半径（HINT_RADII 里的值），0 = 配置半径内一个都没有',
     '',
   ];
+  for (const limit of HINT_RADII) {
+    for (const r of HINT_RADII.filter((v) => v <= limit)) {
+      lines.push(`execute if score #hint_range ybih.config matches ${limit} if score #hint_band ybih.config matches 0 run scoreboard players set #band_r ybih.config ${r}`);
+      lines.push(
+        `execute if score #hint_range ybih.config matches ${limit} if score #hint_band ybih.config matches 0 as @e[tag=ybih_button,distance=..${r}] if score @s ybih.era = #era ybih.config run function ybih:game/hint_probe`,
+      );
+    }
+  }
+
+  // 文案：命中某一档就把那一档说出去，越近颜色越紧
+  lines.push('');
+  lines.push('# 档位文案。写在这里而不是 hint_one：档位字面量统一由上面的表生成');
   for (const r of HINT_RADII) {
+    const color = r <= 5 ? 'red' : r <= 15 ? 'gold' : 'yellow';
     lines.push(
-      `execute if score #hint_range ybih.config matches ${r} as @e[tag=ybih_button,distance=..${r}] if score @s ybih.era = #era ybih.config run function ybih:game/hint_probe`,
+      `execute if score #hint_band ybih.config matches ${r} run title @s actionbar [{{TXT_S}}最近的别人的按钮在 ${r} 格内{{TXT_M}}${color}{{TXT_E}}]`,
     );
   }
+  lines.push('execute if score #hint_band ybih.config matches 0 run title @s actionbar [{{SCORE_HINTRANGE}},{{TXT_S}} 格内没有别人的按钮{{TXT_M}}gray{{TXT_E}}]');
   return lines.join('\n') + '\n';
 }
 
