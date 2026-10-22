@@ -130,12 +130,15 @@ scoreboard players set #fix_owner ybih.config 0
 #   #bonus_count 本轮**实际发出去**了几份（物主离线就发不出去）
 #   #bonus_total 本轮有几个按钮一次都没被找到（含物主离线、发不出去的那些）
 #   #bonus_owner 当前这个按钮的物主编号、#bonus_got 他这次算不算发成功
+#   #bonus_half  到最后三分之一才第一次被找到时，物主拿的半份 = #player_count / 4
+#                （见 button/bonus_half，每次进去都重算，这里给个初值只为可读）
 scoreboard players set #bonus_done ybih.config 0
 scoreboard players set #bonus_amt ybih.config 0
 scoreboard players set #bonus_count ybih.config 0
 scoreboard players set #bonus_total ybih.config 0
 scoreboard players set #bonus_owner ybih.config 0
 scoreboard players set #bonus_got ybih.config 0
+scoreboard players set #bonus_half ybih.config 0
 
 # 搜寻提示的档位（见 game/hint_scan / hint_one）：
 #   #hint_band 最近的别人的按钮落在哪一档半径里，0 = 配置半径内一个都没有

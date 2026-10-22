@@ -154,10 +154,12 @@ Minecraft Java 版数据包 · 命名空间 `ybih` · 支持 1.16.2 – 26.2
 4. **本轮结束**：所有按钮的分都被拿完（每位搜寻者都取过一份），或者搜寻倒计时（默认 600 秒）归零。
    - **没被找到的按钮有保底**：一个按钮如果**从头到尾没人按到过**，物主在轮末拿
      **参与人数 ÷ 2（向下取整）**分。6 人局就是 3 分（该按钮本身值 5 分）。
-     被按到过哪怕一次就没有保底 —— 那份价值已经在按下的一刻结清了。
+     **到最后三分之一才被找到的拿一半**（6 人局 1 分，当场到账）；
+     更早被找到就没有了 —— 那份价值已经在按下的一刻结清了。
      这是「藏得好」的直接回报，藏得隐蔽不再是纯亏本的事。
    - **搜寻期 Boss 栏常驻显示场上还剩多少分**，每次有人按下都会当场变小；
      有人取走分时聊天栏会播报一行（谁从谁的按钮上取走几分、还剩几分）；
+     进入最后三分之一时 Boss 栏会多一段「最后冲刺」，提示也从那时起变密并补报方位；
      **所有按钮都被找到时会播报一句「保底分全部作废」**。
    - 播报本轮完整名次（**含保底分**）。
    - **带全员围观**：本轮**每一个藏过按钮的人都展示一遍**，不管那个按钮的分有没有被拿完，
@@ -423,11 +425,18 @@ dist/                    构建产物，不纳入版本管理
 
 几个函数**不在 `src/` 里**，由构建脚本生成（改它们要去 `tools/build.mjs` 的 `GENERATED` 表）：
 `player/give_buttons`、`button/tag_material`、`button/tag_face`、`button/press_tick`、
-`button/press_scan`、`button/hit_bit`、`button/protect_check` / `protect_scan` / `protect_restore`、
+`button/press_scan` / `press_down` / `press_up`、`button/hit_bit`、
+`button/protect_check` / `protect_scan` / `protect_restore`、
 `button/refund_pending`、`util/clear_placed_blocks`、`game/bar_value`、
 `game/showcase_view`、`game/showcase_pin`、`game/hint_scan`、`admin/book`、
 `game/owed_bit`（超时欠账位掩码），
 以及 `config/` 下的数值选项函数。
+
+> **`press_scan` 只是个分流闸门。** 它按标记身上有没有 `ybih_pressed` 分成两条路：
+> 未按下的走 `press_down`（只查「有没有亮起」），已按下的走 `press_up`（只查「有没有弹起」），
+> 材质核对各在那边。这样每种材质每 tick 只跑一条而不是两条。
+> **改材质清单时 `press_down` 与 `press_up` 必须一起长出来** —— 构建期会逐个材质核对这两个文件，
+> 少一边就报错。
 
 > **另一套生成器在 `tools/ttt.mjs` 里。** 九宫格棋的函数（`room/ttt_*`）**全部不在 `src/` 下**，
 > 源码目录里根本没有它们 —— 想改棋盘、落子、名单或状态行，要去 `tools/ttt.mjs`；改完同样跑构建。

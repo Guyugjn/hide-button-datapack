@@ -16,6 +16,9 @@ scoreboard players remove #btn_remain ybih.config 1
 
 tellraw @s [{{TXT_S}}+{{TXT_E}},{{SCORE_GAINED}},{{TXT_S}} 分{{TXT_M}}green{{TXT_E}}]
 function ybih:button/press_broadcast
-# 物主的保底分因这一次按下作废，单独告诉他 —— 这是藏匿方判断「这次藏成没成」的主要反馈
+# 物主的保底分因这一次按下作废或减半 —— 这是藏匿方判断「这次藏成没成」的主要反馈。
+# 半档必须先算：notify_first_find 要读 #bonus_half 才知道该说「全没」还是「减半」，
+# 顺序反了它读到的是上一次留下的旧值
+execute if score #first_find ybih.config matches 1 if score #timer ybih.config <= #late_from ybih.config run function ybih:button/bonus_half
 execute if score #first_find ybih.config matches 1 run function ybih:button/notify_first_find
 function ybih:button/award_dec

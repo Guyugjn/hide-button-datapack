@@ -130,20 +130,53 @@ function genPressTick(pack) {
   ].join('\n');
 }
 
-// 单次遍历后的逐按钮分派：按材质标签做廉价判定，命中才读方块状态
+// 单次遍历后的逐按钮分派：先按 ybih_pressed 分成「等它被按下」与「等它弹起」两条路，
+// 各自只查自己那一半，材质核对放到下游。
+//
+// 为什么值得分：原来每种材质两条（按下一条、弹起一条），14 种材质就是 28 条，
+// 而按钮在任一时刻只会处在其中一种状态，另一半是注定落空的空转。
+// 分流之后每 tick 固定 2 条闸门 + 14 条材质核对 = 16 条，材质再多也只涨 1 条/种。
+//
+// 语义与分流前逐条等价，差别只在「未按下」这一侧不再执行 release ——
+// release 只做两行摘标签、完全幂等，而一个未带 ybih_pressed 的标记本来就没有
+// 那两样标签可摘（ybih_active 的陈旧值由 press_begin 开头统一清空，见那里的注释）
 function genPressScan(pack) {
+  return [
+    '# ybih:button/press_scan —— 以按钮标记为执行者：按「是否已被按下」分流到两个方向',
+    '# 未按下的只查「有没有亮起」，已按下的只查「有没有弹起」，各走各的 14 条材质核对',
+    '',
+    'execute unless entity @s[tag=ybih_pressed] run function ybih:button/press_down',
+    'execute if entity @s[tag=ybih_pressed] run function ybih:button/press_up',
+    '',
+  ].join('\n');
+}
+
+// 「还没被按下」这一侧：本材质亮起了才算按下
+function genPressDown(pack) {
   const lines = [
-    '# ybih:button/press_scan —— 以按钮标记为执行者：判定是否被按下，并在弹起时解除处理标记',
+    '# ybih:button/press_down —— 未按下的按钮：本材质方块亮起就判定为按下',
+    '# 由 button/press_scan 在标记未带 ybih_pressed 时调用',
     '',
   ];
   for (const m of pack.materials) {
-    const tag = MATERIAL_TO_TAG(m);
-    const block = MATERIAL_TO_BLOCK(m);
     lines.push(
-      `execute if entity @s[tag=${tag}] if block ~ ~ ~ ${block}[powered=true] run function ybih:button/on_press`,
+      `execute if entity @s[tag=${MATERIAL_TO_TAG(m)}] if block ~ ~ ~ ${MATERIAL_TO_BLOCK(m)}[powered=true] run function ybih:button/on_press`,
     );
+  }
+  return lines.join('\n') + '\n';
+}
+
+// 「已被按下」这一侧：本材质方块不再亮起就解除处理标记。
+// 换了材质、方块被挖掉、位置成了空气，都会走到 release —— 与分流前一致
+function genPressUp(pack) {
+  const lines = [
+    '# ybih:button/press_up —— 已按下的按钮：本材质方块弹起就解除处理标记',
+    '# 由 button/press_scan 在标记带 ybih_pressed 时调用',
+    '',
+  ];
+  for (const m of pack.materials) {
     lines.push(
-      `execute if entity @s[tag=${tag}] unless block ~ ~ ~ ${block}[powered=true] run function ybih:button/release`,
+      `execute if entity @s[tag=${MATERIAL_TO_TAG(m)}] unless block ~ ~ ~ ${MATERIAL_TO_BLOCK(m)}[powered=true] run function ybih:button/release`,
     );
   }
   return lines.join('\n') + '\n';
@@ -514,6 +547,8 @@ const GENERATED = {
   'data/ybih/function/button/tag_face.mcfunction': genTagFace,
   'data/ybih/function/button/press_tick.mcfunction': genPressTick,
   'data/ybih/function/button/press_scan.mcfunction': genPressScan,
+  'data/ybih/function/button/press_down.mcfunction': genPressDown,
+  'data/ybih/function/button/press_up.mcfunction': genPressUp,
   'data/ybih/function/button/hit_bit.mcfunction': genHitBit,
   'data/ybih/function/game/owed_bit.mcfunction': genOwedBit,
   'data/ybih/function/button/protect_check.mcfunction': genProtectCheck,
@@ -1266,8 +1301,12 @@ function validate(packDir, pack) {
   };
   for (const m of pack.materials) {
     const tag = MATERIAL_TO_TAG(m);
+    // press_down / press_up 是分流后的两个方向，每种材质必须两边都在：
+    // 少一边的后果是「按下去不判定」或「弹起后永远解不开闸门」，
+    // 两种都只在实机才看得出来，所以在这里拦住
     for (const [file, label] of [
-      ['button/press_scan.mcfunction', 'press_scan'],
+      ['button/press_down.mcfunction', 'press_down'],
+      ['button/press_up.mcfunction', 'press_up'],
       ['button/protect_restore.mcfunction', 'protect_restore'],
       ['button/refund_pending.mcfunction', 'refund_pending'],
     ]) {
@@ -1369,6 +1408,32 @@ function validate(packDir, pack) {
     if (!barSteps.some((line) => line.endsWith(`value ${i}`))) {
       errors.push(`Boss 栏进度条缺少 ${i} 档`);
     }
+  }
+
+  // 残局方位的档位必须与 HINT_RADII 一致。
+  //
+  // hint_scan 由 genHintScan 生成，改档位表会自动跟着变；而 hint_dir 是手写的六档
+  // （`#hint_band matches N` → 按 distance=..N 挑候选）。两边一旦脱钩，
+  // 后果是**方位永远报不出来**，而且不报任何错：hint_scan 写进的 #hint_band 是
+  // 新档位表里的值，hint_dir 那六条一条都不命中，玩家只会觉得「残局没有方向提示」。
+  // 这类静默失效只能靠构建期比对拦住。
+  const hintDirTiers = [];
+  for (const line of readFunc('game/hint_dir.mcfunction').split('\n')) {
+    if (line.trimStart().startsWith('#')) continue;
+    if (!line.includes('ybih:game/hint_dir_pick')) continue;
+    const m = line.match(/#hint_band ybih\.config matches (\d+)/);
+    if (m) hintDirTiers.push(Number(m[1]));
+  }
+  const wantTiers = [...HINT_RADII];
+  const tiersSame =
+    hintDirTiers.length === wantTiers.length &&
+    hintDirTiers.every((v, i) => v === wantTiers[i]);
+  if (!tiersSame) {
+    errors.push(
+      `game/hint_dir 的方位档位 [${hintDirTiers.join(', ')}] 与 HINT_RADII [${wantTiers.join(', ')}] 不一致：` +
+        '改档位表时必须同步改 hint_dir 那几条 matches，否则 #hint_band 落在新档位上时一条都不命中，' +
+        '残局方位永远不报且不报任何错',
+    );
   }
 
   return errors;
