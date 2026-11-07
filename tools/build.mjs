@@ -258,10 +258,10 @@ function genHintScan(pack) {
   for (const r of HINT_RADII) {
     const color = r <= 5 ? 'red' : r <= 15 ? 'gold' : 'yellow';
     lines.push(
-      `execute if score #hint_band ybih.config matches ${r} run title @s actionbar [{{TXT_S}}最近的别人的按钮在 ${r} 格内{{TXT_M}}${color}{{TXT_E}}]`,
+      `execute if score #hint_band ybih.config matches ${r} run title @s actionbar [{{TXT_S}}最近的未取分按钮在 ${r} 格内{{TXT_M}}${color}{{TXT_E}}]`,
     );
   }
-  lines.push('execute if score #hint_band ybih.config matches 0 run title @s actionbar [{{SCORE_HINTRANGE}},{{TXT_S}} 格内没有别人的按钮{{TXT_M}}gray{{TXT_E}}]');
+  lines.push('execute if score #hint_band ybih.config matches 0 run title @s actionbar [{{SCORE_HINTRANGE}},{{TXT_S}} 格内没有可取分的按钮{{TXT_M}}gray{{TXT_E}}]');
   return lines.join('\n') + '\n';
 }
 

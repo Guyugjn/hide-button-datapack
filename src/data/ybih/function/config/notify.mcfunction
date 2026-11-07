@@ -12,6 +12,7 @@ execute unless score #hint_period ybih.config matches 99999 run tellraw @s [{{TX
 tellraw @s [{{TXT_S}}轮数 {{TXT_E}},{{SCORE_ROUNDS}},{{TXT_S}} 轮{{TXT_E}}]
 execute if score #showcase_on ybih.config matches 1 run tellraw @s [{{TXT_S}}轮末围观 {{TXT_E}},{{TXT_S}}开启{{TXT_M}}green{{TXT_E}}]
 execute unless score #showcase_on ybih.config matches 1 run tellraw @s [{{TXT_S}}轮末围观 {{TXT_E}},{{TXT_S}}关闭{{TXT_M}}gray{{TXT_E}}]
+tellraw @s [{{TXT_S}}每个按钮围观 {{TXT_E}},{{SCORE_SHOWTIME}},{{TXT_S}} 秒{{TXT_E}}]
 execute if score #border_on ybih.config matches 1 if score #border_r ybih.config matches 1.. run tellraw @s [{{TXT_S}}活动边界 {{TXT_E}},{{TXT_S}}开启 · 半径 {{TXT_E}},{{SCORE_BORDER_R}},{{TXT_S}} 格 · 开局生效{{TXT_M}}gold{{TXT_E}}]
 execute if score #border_on ybih.config matches 1 unless score #border_r ybih.config matches 1.. run tellraw @s [{{TXT_S}}活动边界 {{TXT_E}},{{TXT_S}}开启 · 跟随手动值 · 开局生效{{TXT_M}}gold{{TXT_E}}]
 execute unless score #border_on ybih.config matches 1 run tellraw @s [{{TXT_S}}活动边界 {{TXT_E}},{{TXT_S}}关闭{{TXT_M}}gray{{TXT_E}}]

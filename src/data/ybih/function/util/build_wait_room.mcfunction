@@ -25,6 +25,16 @@ execute at @e[tag=ybih_room,limit=1] run fill ~-6 ~ ~-6 ~6 ~4 ~6 dark_oak_planks
 # 掏空内空：11×11、3 格高
 execute at @e[tag=ybih_room,limit=1] run fill ~-5 ~1 ~-5 ~5 ~3 ~5 air
 
+# 木梁嵌入墙面，保持通道与中央活动空间畅通
+execute at @e[tag=ybih_room,limit=1] run fill ~-6 ~1 ~-6 ~-6 ~3 ~-6 stripped_spruce_log
+execute at @e[tag=ybih_room,limit=1] run fill ~6 ~1 ~-6 ~6 ~3 ~-6 stripped_spruce_log
+execute at @e[tag=ybih_room,limit=1] run fill ~-6 ~1 ~6 ~-6 ~3 ~6 stripped_spruce_log
+execute at @e[tag=ybih_room,limit=1] run fill ~6 ~1 ~6 ~6 ~3 ~6 stripped_spruce_log
+execute at @e[tag=ybih_room,limit=1] run fill ~-6 ~1 ~0 ~-6 ~3 ~0 stripped_spruce_log
+execute at @e[tag=ybih_room,limit=1] run fill ~6 ~1 ~0 ~6 ~3 ~0 stripped_spruce_log
+execute at @e[tag=ybih_room,limit=1] run fill ~0 ~1 ~-6 ~0 ~3 ~-6 stripped_spruce_log
+execute at @e[tag=ybih_room,limit=1] run fill ~0 ~1 ~6 ~0 ~3 ~6 stripped_spruce_log
+
 # 地板地基：基准层下面铺一层实心板，给地毯当支撑（顺序必须在铺地毯之前）
 execute at @e[tag=ybih_room,limit=1] run fill ~-6 ~-1 ~-6 ~6 ~-1 ~6 dark_oak_planks
 # 地板铺地毯：外圈棕色当走道，里圈浅灰当坐区（标记那一格必定落在里圈）
@@ -34,6 +44,11 @@ execute at @e[tag=ybih_room,limit=1] run fill ~-4 ~ ~-4 ~4 ~ ~4 light_gray_carpe
 # 屋顶一圈荧石当灯带，正中 5×5 换成玻璃当天窗
 execute at @e[tag=ybih_room,limit=1] run fill ~-3 ~4 ~-3 ~3 ~4 ~3 glowstone
 execute at @e[tag=ybih_room,limit=1] run fill ~-2 ~4 ~-2 ~2 ~4 ~2 glass
+# 天窗四周悬挂暖灯
+execute at @e[tag=ybih_room,limit=1] run setblock ~-4 ~3 ~-4 lantern[hanging=true]
+execute at @e[tag=ybih_room,limit=1] run setblock ~4 ~3 ~-4 lantern[hanging=true]
+execute at @e[tag=ybih_room,limit=1] run setblock ~-4 ~3 ~4 lantern[hanging=true]
+execute at @e[tag=ybih_room,limit=1] run setblock ~4 ~3 ~4 lantern[hanging=true]
 
 # 四角地灯：地毯四角换成海晶灯，室内暖而不暗
 execute at @e[tag=ybih_room,limit=1] run fill ~-5 ~ ~-5 ~-5 ~ ~-5 sea_lantern

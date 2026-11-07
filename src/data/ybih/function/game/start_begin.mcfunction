@@ -6,6 +6,8 @@ function ybih:util/cleanup_all
 function ybih:room/ttt_reset
 # 本局编号：跨局遗留在世界里的旧按钮标记靠它区分，不会被当成本局按钮
 scoreboard players add #era ybih.config 1
+function ybih:game/bonus_reset
+scoreboard players operation #bp_era ybih.config = #era ybih.config
 scoreboard players set #next_id ybih.config 1
 # 上一局的超时欠账与藏匿编号一并作废：编号每局从 1 重发，
 # 留着旧欠账会让新局里恰好抽到同一编号的人被误扣
@@ -30,8 +32,10 @@ tag @a remove ybih_ranked
 # 只是行为与文档不一致），且这份凭据会一直挂在存档里
 tag @a remove ybih_spec_once
 
-execute as @a[gamemode=!spectator] run function ybih:player/join_game
+# 随机选取最多 30 名参赛者，其余玩家由观战接管处理
+execute as @a[gamemode=!spectator,sort=random,limit=30] run function ybih:player/join_game
 execute as @a[tag=!ybih_player] run scoreboard players set @s ybih.id 0
+execute if score #next_id ybih.config matches 31.. run tellraw @a[tag=!ybih_player,gamemode=!spectator] {{TXT_S}}本局参赛名额已满，你将以观众身份观战{{TXT_M}}yellow{{TXT_E}}
 
 # 对局期间不吃饥饿也不受伤，名单以这一 tick 定下来的参与者为准
 execute as @a[tag=ybih_player] run function ybih:player/apply_buff

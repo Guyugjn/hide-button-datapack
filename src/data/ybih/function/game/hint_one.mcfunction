@@ -10,6 +10,8 @@
 
 scoreboard players set #hint_band ybih.config 0
 scoreboard players operation #hint_self ybih.config = @s ybih.id
-function ybih:game/hint_scan
+function ybih:button/hit_bit
+execute if score #hit_bit ybih.config matches 1.. run function ybih:game/hint_scan
+execute unless score #hit_bit ybih.config matches 1.. run title @s actionbar {{TXT_S}}无法记录你的按钮得分，暂不提供提示{{TXT_M}}gray{{TXT_E}}
 
 execute if score #timer ybih.config <= #late_from ybih.config if score #hint_band ybih.config matches 1.. run function ybih:game/hint_dir

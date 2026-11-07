@@ -1,4 +1,5 @@
 # ybih:game/cleanup_end —— 整局结束：清场并还原玩家状态
+function ybih:game/bonus_reset
 
 function ybih:game/cleanup_buttons
 # 全员回集合点集合。这一步必须排在拆等待室之前：按中止时可能还有人被关在里面，

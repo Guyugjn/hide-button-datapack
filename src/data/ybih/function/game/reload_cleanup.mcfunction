@@ -1,4 +1,5 @@
 # ybih:game/reload_cleanup —— /reload 时清空对局数据，集合点与设置保留
+function ybih:game/bonus_reset
 
 # 围观展示卡在半途时留在世界里的按钮，cleanup_all 里已经先扫方块再收标记，
 # 这里不再重复 —— 那条清扫必须早于任何 kill，写在这一行后面就已经太晚了

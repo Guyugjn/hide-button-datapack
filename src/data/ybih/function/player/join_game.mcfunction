@@ -1,7 +1,12 @@
 # ybih:player/join_game —— 玩家入队：分配 id、记录原游戏模式
 
 tag @s add ybih_player
+scoreboard players operation @s ybih.era = #era ybih.config
+execute if score #mode ybih.config matches 1 run scoreboard players operation @s ybih.t_epoch = #round ybih.config
+execute if score #mode ybih.config matches 2 run scoreboard players operation @s ybih.t_epoch = #cycle ybih.config
 scoreboard players operation @s ybih.id = #next_id ybih.config
+function ybih:button/hit_bit
+scoreboard players operation @s ybih.bit = #hit_bit ybih.config
 scoreboard players add #next_id ybih.config 1
 scoreboard players set @s ybih.score 0
 scoreboard players set @s ybih.placed 0

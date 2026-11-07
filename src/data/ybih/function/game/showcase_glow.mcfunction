@@ -5,7 +5,7 @@
 # 只亮当前这一个：每次切换先整批清掉，再给当前这个挂上 ——
 # 不用记「上一个是谁」，清光的动作本身就把它带走了
 #
-# 分被拿完用红队、还有分用绿队。玩家只在自己那个按钮被展示时临时进队、之后退出，
+# 找到过用红队、从未找到用绿队。玩家只在自己那个按钮被展示时临时进队、之后退出，
 # 所以同屏最多只有「当前按钮 + 它的物主」两处发光
 
 # 先整批清掉上一轮的高亮。玩家只清参与者：没参与对局的人不进队，
@@ -16,8 +16,8 @@ effect clear @a[tag=ybih_player] minecraft:glowing
 tag @a remove ybih_show_owner
 team leave @a[tag=ybih_player]
 
-execute if entity @s[tag=ybih_ghost] run team join ybih_found @s
-execute unless entity @s[tag=ybih_ghost] run team join ybih_notfound @s
+execute if score #show_found ybih.config matches 1 run team join ybih_found @s
+execute if score #show_found ybih.config matches 0 run team join ybih_notfound @s
 effect give @s minecraft:glowing 999999 0 true
 
 # 物主也标成同色，方便一眼看出这个按钮是谁藏的

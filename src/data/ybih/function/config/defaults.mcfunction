@@ -110,6 +110,7 @@ scoreboard players set #show_found ybih.config 0
 scoreboard players set #show_idx ybih.config 0
 scoreboard players set #show_timer ybih.config 0
 scoreboard players set #show_total ybih.config 0
+execute unless score #show_time ybih.config matches 1.. run scoreboard players set #show_time ybih.config 10
 scoreboard players set #show_len ybih.config 200
 scoreboard players set #show_sec ybih.config 0
 scoreboard players set #show_refresh ybih.config 0
@@ -175,6 +176,7 @@ scoreboard players set #hd_pid ybih.config 0
 #   #unfound_count 一次都没被按过的按钮数（保底窗口还开着的那些）
 #   #unfound_prev 上一秒的值，用来抓「刚刚全被找到」这个转折
 scoreboard players set #points_left ybih.config 0
+scoreboard players set #dyn_remaining ybih.config 0
 scoreboard players set #unfound_count ybih.config 0
 scoreboard players set #unfound_prev ybih.config -1
 

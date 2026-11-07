@@ -30,7 +30,8 @@ execute if score #mode ybih.config matches 2 run function ybih:game/enter_search
 # 先算一次局势统计，Boss 栏第一秒就有数可显示（bar_update 在下面读它）。
 # 必须排在分派之后：enter_searching_classic 可能因为场上没有按钮而当场收官，
 # 那种情况不必再数一遍
-function ybih:game/points_count
+execute if score #state ybih.config matches 3 run function ybih:game/dynamic_prepare
+execute if score #state ybih.config matches 3 run function ybih:game/points_count
 
 # 最后一位确认藏匿时直接落到这里，同样不经过每秒循环
-function ybih:game/bar_update
+execute if score #state ybih.config matches 3 run function ybih:game/bar_update

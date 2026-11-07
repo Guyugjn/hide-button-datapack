@@ -10,21 +10,19 @@
 # 复用 #player_count 而不是现数在线人数：它是本轮开局定下来的参与者总数，
 # 与 confirm_place_ok 给按钮定值的口径同源，中途掉线的人不会让保底分缩水
 #
-# 物主此刻不在线就跳过（见 bonus_pay）：一次性收尾点都够不到离线玩家，
-# 这是项目里既有的口径，不在这里另起一套补还机制
+# 物主离线时先记入本局账本，本局结束前重连才补发（见 bonus_pay）。
 
 scoreboard players set #bonus_done ybih.config 1
 scoreboard players set #bonus_count ybih.config 0
 scoreboard players set #bonus_total ybih.config 0
 scoreboard players operation #bonus_amt ybih.config = #player_count ybih.config
-scoreboard players operation #bonus_amt ybih.config /= #c2 ybih.config
+scoreboard players remove #bonus_amt ybih.config 1
 
-# 一人的局保底分是 0（1 / 2 向下取整），整段跳过，免得播一句「各得 0 分」
+# 一人局保底为 0，不发零分提示
 execute if score #bonus_amt ybih.config matches 1.. as @e[type=armor_stand,tag=ybih_button,tag=!ybih_pending,scores={ybih.hit=0}] if score @s ybih.era = #era ybih.config run function ybih:game/bonus_pay
 
 # 播报要点：**「几个按钮没被找到」与「几位物主拿到了分」是两个数**。
-# 物主不在线时那个按钮照样算没被找到，但他拿不到分；混用一个数会报出
-# 「有 2 个按钮一次都没被找到，物主各得 3 分」—— 实际上只有一位物主拿到了。
-# 两个数相等（都发成功了）时用短句，不等时点明差额，让人知道有人没在线
+# 物主不在线时那个按钮照样算没被找到，奖励暂存至本局内重连。
+# 两个数不等时分开说明当场到账与暂存。
 execute if score #bonus_total ybih.config matches 1.. if score #bonus_total ybih.config = #bonus_count ybih.config run tellraw @a [{{TXT_S}}有 {{TXT_E}},{{SCORE_BONUS_TOTAL}},{{TXT_S}} 个按钮一次都没被找到，物主各得 {{TXT_E}},{{SCORE_BONUS_AMT}},{{TXT_S}} 分{{TXT_M}}gold{{TXT_E}}]
-execute if score #bonus_total ybih.config matches 1.. unless score #bonus_total ybih.config = #bonus_count ybih.config run tellraw @a [{{TXT_S}}有 {{TXT_E}},{{SCORE_BONUS_TOTAL}},{{TXT_S}} 个按钮一次都没被找到，其中 {{TXT_E}},{{SCORE_BONUS_COUNT}},{{TXT_S}} 位物主各得 {{TXT_E}},{{SCORE_BONUS_AMT}},{{TXT_S}} 分（其余物主不在线，不发）{{TXT_M}}gold{{TXT_E}}]
+execute if score #bonus_total ybih.config matches 1.. unless score #bonus_total ybih.config = #bonus_count ybih.config run tellraw @a [{{TXT_S}}有 {{TXT_E}},{{SCORE_BONUS_TOTAL}},{{TXT_S}} 个按钮一次都没被找到，其中 {{TXT_E}},{{SCORE_BONUS_COUNT}},{{TXT_S}} 位物主各得 {{TXT_E}},{{SCORE_BONUS_AMT}},{{TXT_S}} 分（其余物主本局重连后补发）{{TXT_M}}gold{{TXT_E}}]

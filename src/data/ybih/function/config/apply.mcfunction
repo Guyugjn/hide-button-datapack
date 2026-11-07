@@ -20,6 +20,9 @@ scoreboard players set #hint_range ybih.config 10
 # 按钮保护检测间隔（tick）
 scoreboard players set #protect_period ybih.config 5
 
+# 每个按钮围观时长（秒）
+scoreboard players set #show_time ybih.config 10
+
 # 总轮数：每轮为「藏匿 + 搜寻」一次完整流程，分数跨轮累计
 # 轮流模式下这是周期数，一局总轮数 = 周期数 × 参与人数
 scoreboard players set #rounds ybih.config 1

@@ -39,8 +39,8 @@ execute if score #state ybih.config matches 2 run bossbar set ybih:timer name [{
 # 搜寻态按「是否已进最后三分之一」分两句。这一段同时也是给玩家的信号：
 # 提示从这里开始变密并补报方位，写在 Boss 栏上比发一行聊天更安静，
 # 也不会把聊天栏里刚播过的按下播报顶走
-execute if score #state ybih.config matches 3 if score #timer ybih.config > #late_from ybih.config run bossbar set ybih:timer name [{{TXT_S}}第 {{TXT_E}},{{SCORE_ROUND}},{{TXT_S}} / {{TXT_E}},{{SCORE_ROUNDSTOTAL}},{{TXT_S}} 轮 · 搜寻中 · 剩 {{TXT_E}},{{SCORE_POINTS}},{{TXT_S}} 分 · {{TXT_E}},{{SCORE_CD_MIN}},{{TXT_S}}:{{TXT_E}},{{SCORE_CD_S10}},{{SCORE_CD_S1}}]
-execute if score #state ybih.config matches 3 if score #timer ybih.config <= #late_from ybih.config run bossbar set ybih:timer name [{{TXT_S}}第 {{TXT_E}},{{SCORE_ROUND}},{{TXT_S}} / {{TXT_E}},{{SCORE_ROUNDSTOTAL}},{{TXT_S}} 轮 · 搜寻中 · 最后冲刺 · 剩 {{TXT_E}},{{SCORE_POINTS}},{{TXT_S}} 分 · {{TXT_E}},{{SCORE_CD_MIN}},{{TXT_S}}:{{TXT_E}},{{SCORE_CD_S10}},{{SCORE_CD_S1}}]
+execute if score #state ybih.config matches 3 if score #timer ybih.config > #late_from ybih.config run bossbar set ybih:timer name [{{TXT_S}}第 {{TXT_E}},{{SCORE_ROUND}},{{TXT_S}} / {{TXT_E}},{{SCORE_ROUNDSTOTAL}},{{TXT_S}} 轮 · 搜寻中 · 可领 {{TXT_E}},{{SCORE_DYN}},{{TXT_S}} 次 · {{TXT_E}},{{SCORE_CD_MIN}},{{TXT_S}}:{{TXT_E}},{{SCORE_CD_S10}},{{SCORE_CD_S1}}]
+execute if score #state ybih.config matches 3 if score #timer ybih.config <= #late_from ybih.config run bossbar set ybih:timer name [{{TXT_S}}第 {{TXT_E}},{{SCORE_ROUND}},{{TXT_S}} / {{TXT_E}},{{SCORE_ROUNDSTOTAL}},{{TXT_S}} 轮 · 搜寻中 · 最后冲刺 · 可领 {{TXT_E}},{{SCORE_DYN}},{{TXT_S}} 次 · {{TXT_E}},{{SCORE_CD_MIN}},{{TXT_S}}:{{TXT_E}},{{SCORE_CD_S10}},{{SCORE_CD_S1}}]
 
 # 颜色随剩余时间收紧：过半绿、两成以上黄、不足两成红
 execute if score #pct ybih.config matches 51.. run bossbar set ybih:timer color green

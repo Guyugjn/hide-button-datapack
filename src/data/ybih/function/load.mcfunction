@@ -2,6 +2,7 @@
 
 scoreboard objectives add ybih.config dummy
 scoreboard objectives add ybih.id dummy
+scoreboard objectives add ybih.bit dummy
 scoreboard objectives add ybih.score dummy
 scoreboard objectives add ybih.placed dummy
 scoreboard objectives add ybih.turn dummy
@@ -17,12 +18,15 @@ scoreboard objectives add ybih.used_bid dummy
 # 按钮自身的编号：每登记一个发一个，用来把「玩家交互的按钮」与「被按下的按钮」对上
 scoreboard objectives add ybih.bid dummy
 scoreboard objectives add ybih.era dummy
+scoreboard objectives add ybih.t_epoch dummy
+scoreboard objectives add ybih.vote dummy
+scoreboard objectives add ybih.v_seen dummy
+scoreboard objectives add ybih.v_tick dummy
 # 按钮被保护机制恢复过几次：反复被破坏的位置靠它止损
 scoreboard objectives add ybih.fixed dummy
 # 本局里这个按钮是第几个藏下的：轮末围观按它排序，先藏的先看
 scoreboard objectives add ybih.seq dummy
-# 按钮自身还剩几份分：挂在按钮标记上，谁按谁取走一份，取完这个按钮才收掉。
-# 分值挂在按钮上而不是全局池，场上每个按钮各算各的
+# 按钮的下一次奖励值：成功领取后递减，最低为 1 分。
 scoreboard objectives add ybih.value dummy
 # 按钮上的位图：记「谁从这个按钮上拿过分」，位号 = 玩家编号 - 1。
 # 记分板没有按位与，判定写成取模，见 button/award_grant
@@ -57,7 +61,7 @@ scoreboard objectives add ybih.t7 dummy
 scoreboard objectives add ybih.t8 dummy
 scoreboard objectives add ybih.t9 dummy
 
-# 围观高亮用：发光轮廓的颜色取自队伍，红=分被拿完、绿=还有分。
+# 围观高亮用：发光轮廓的颜色取自队伍，红=被找到过、绿=从未找到。
 # 队伍只装标记与「正被展示的那个按钮的物主」，其余玩家一律不进队。
 # team add 对已存在的队伍会失败，和 objectives add 同一个坑，
 # 所以只在首次加载建一次。没有 if team 这种条件，用 team list 的成败去探

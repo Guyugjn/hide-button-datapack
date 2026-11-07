@@ -6,5 +6,8 @@
 scoreboard players add #show_idx ybih.config 1
 
 execute if score #show_idx ybih.config > #show_total ybih.config run function ybih:game/showcase_end
+execute if score #show_idx ybih.config <= #show_total ybih.config run scoreboard players operation #show_len ybih.config = #show_time ybih.config
+execute if score #show_idx ybih.config <= #show_total ybih.config run scoreboard players operation #show_len ybih.config *= #c20 ybih.config
 execute if score #show_idx ybih.config <= #show_total ybih.config run scoreboard players operation #show_timer ybih.config = #show_len ybih.config
+scoreboard players set #show_bid ybih.config 0
 execute if score #show_idx ybih.config <= #show_total ybih.config run function ybih:game/showcase_pick

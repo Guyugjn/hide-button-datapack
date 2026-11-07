@@ -51,11 +51,14 @@ export const TEXT_JSON = {
   SCORE_SHOWIDX: '{"score":{"name":"#show_idx","objective":"ybih.config"}}',
   SCORE_SHOWTOTAL: '{"score":{"name":"#show_total","objective":"ybih.config"}}',
   SCORE_SHOWSEC: '{"score":{"name":"#show_sec","objective":"ybih.config"}}',
+  SCORE_SHOWTIME: '{"score":{"name":"#show_time","objective":"ybih.config"}}',
   SCORE_FINDS: '{"score":{"name":"@s","objective":"ybih.finds"}}',
   BTN_CONFIRM:
     '{"text":"【确认】","color":"green","clickEvent":{"action":"run_command","value":"/trigger ybih.trigger set 1"}}',
   BTN_REDO:
     '{"text":"【取消重放】","color":"red","clickEvent":{"action":"run_command","value":"/trigger ybih.trigger set 2"}}',
+  BTN_SHOW_SKIP:
+    '{"text":"【投票跳过】","color":"gold","clickEvent":{"action":"run_command","value":"/trigger ybih.trigger set 53"}}',
   // 等待室的常驻入口：11 刷新名单 / 12 离座 / 13 重贴棋盘
   BTN_TTT_REFRESH:
     '{"text":"【刷新名单】","color":"gold","clickEvent":{"action":"run_command","value":"/trigger ybih.trigger set 11"}}',
@@ -80,6 +83,7 @@ export const TEXT_JSON = {
   SCORE_BONUS_AMT: '{"score":{"name":"#bonus_amt","objective":"ybih.config"}}',
   SCORE_BONUS_HALF: '{"score":{"name":"#bonus_half","objective":"ybih.config"}}',
   SCORE_POINTS: '{"score":{"name":"#points_left","objective":"ybih.config"}}',
+  SCORE_DYN: '{"score":{"name":"#dyn_remaining","objective":"ybih.config"}}',
   SCORE_HINTBAND: '{"score":{"name":"#hint_band","objective":"ybih.config"}}',
   SCORE_BTNREMAIN: '{"score":{"name":"#btn_remain","objective":"ybih.config"}}',
   // 九宫格的两种棋子与一格空白。棋盘要在聊天栏逐行重贴，棋子用静态文本，
@@ -124,11 +128,14 @@ export const TEXT_SNBT = {
   SCORE_SHOWIDX: "{score:{name:'#show_idx',objective:'ybih.config'}}",
   SCORE_SHOWTOTAL: "{score:{name:'#show_total',objective:'ybih.config'}}",
   SCORE_SHOWSEC: "{score:{name:'#show_sec',objective:'ybih.config'}}",
+  SCORE_SHOWTIME: "{score:{name:'#show_time',objective:'ybih.config'}}",
   SCORE_FINDS: "{score:{name:'@s',objective:'ybih.finds'}}",
   BTN_CONFIRM:
     "{text:'【确认】',color:'green',click_event:{action:'run_command',command:'/trigger ybih.trigger set 1'}}",
   BTN_REDO:
     "{text:'【取消重放】',color:'red',click_event:{action:'run_command',command:'/trigger ybih.trigger set 2'}}",
+  BTN_SHOW_SKIP:
+    "{text:'【投票跳过】',color:'gold',click_event:{action:'run_command',command:'/trigger ybih.trigger set 53'}}",
   // 等待室的常驻入口：11 刷新名单 / 12 离座 / 13 重贴棋盘
   BTN_TTT_REFRESH:
     "{text:'【刷新名单】',color:'gold',click_event:{action:'run_command',command:'/trigger ybih.trigger set 11'}}",
@@ -150,6 +157,7 @@ export const TEXT_SNBT = {
   SCORE_BONUS_AMT: "{score:{name:'#bonus_amt',objective:'ybih.config'}}",
   SCORE_BONUS_HALF: "{score:{name:'#bonus_half',objective:'ybih.config'}}",
   SCORE_POINTS: "{score:{name:'#points_left',objective:'ybih.config'}}",
+  SCORE_DYN: "{score:{name:'#dyn_remaining',objective:'ybih.config'}}",
   SCORE_HINTBAND: "{score:{name:'#hint_band',objective:'ybih.config'}}",
   SCORE_BTNREMAIN: "{score:{name:'#btn_remain',objective:'ybih.config'}}",
   TTT_X: "{text:'【✕】',color:'red'}",
@@ -256,6 +264,10 @@ export const SETTING_FUNCS = [
   { name: 'hint_off', score: '#hint_period', value: 99999 },
   // 提示半径：distance=..N 只收字面量、代入不了记分板，档位表在 book.mjs 的 HINT_RADII
   ...HINT_RADII.map((r) => ({ name: `hint_r${r}`, score: '#hint_range', value: r })),
+  { name: 'show_5', score: '#show_time', value: 5 },
+  { name: 'show_10', score: '#show_time', value: 10 },
+  { name: 'show_15', score: '#show_time', value: 15 },
+  { name: 'show_20', score: '#show_time', value: 20 },
   { name: 'rounds_1', score: '#rounds', value: 1 },
   { name: 'rounds_2', score: '#rounds', value: 2 },
   { name: 'rounds_3', score: '#rounds', value: 3 },

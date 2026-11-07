@@ -2,6 +2,12 @@
 
 execute if score #state ybih.config matches 1..3 run scoreboard players add #tick ybih.config 1
 
+# 先核对重连玩家身份，再处理榜单、选人和结算
+execute as @a run function ybih:player/on_join
+
+# 所有参与者离线时结束整局。
+execute if score #state ybih.config matches 1..4 unless entity @a[tag=ybih_player] run function ybih:game/dynamic_abort
+
 # 右侧榜单：每秒对一次在线名单（有人进出就整榜重建），分数每 tick 增量同步。
 # 重建要排在同步前面，这样清掉的榜在同一 tick 内就会被在线的人重新填上
 scoreboard players remove #board_timer ybih.config 1
@@ -13,11 +19,15 @@ execute if score #state ybih.config matches 2 run function ybih:game/turn_tick
 execute if score #state ybih.config matches 3 run function ybih:game/searching_tick
 execute if score #state ybih.config matches 4 run function ybih:game/showcase_tick
 
-execute as @a run function ybih:player/on_join
 execute as @a[scores={ybih.death=1..}] run function ybih:player/on_death
 
 execute if score #state ybih.config matches 3 run function ybih:button/press_tick
 execute as @a[scores={ybih.trigger=1..}] run function ybih:button/trigger_run
+
+# 按压结算之后复核，在线名单变化与成功按压都在同一 tick 生效。
+execute unless score #state ybih.config matches 3 run scoreboard players set #dyn_round ybih.config -1
+execute unless score #state ybih.config matches 3 run scoreboard players set #dyn_remaining ybih.config 0
+execute if score #state ybih.config matches 3 run function ybih:game/dynamic_monitor
 
 scoreboard players remove #protect_timer ybih.config 1
 execute if score #protect_timer ybih.config matches ..0 if score #state ybih.config matches 1..3 run function ybih:button/protect_tick

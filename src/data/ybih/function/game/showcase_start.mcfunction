@@ -5,6 +5,7 @@
 scoreboard players set #state ybih.config 4
 scoreboard players set #show_idx ybih.config 0
 scoreboard players set #show_timer ybih.config 1
+scoreboard players set #v_clock ybih.config 0
 
 # 先挂展示标签再摘对局标签：反过来的话第二轮就选不中它们了
 execute as @e[tag=ybih_button] if score @s ybih.era = #era ybih.config run tag @s add ybih_showcase

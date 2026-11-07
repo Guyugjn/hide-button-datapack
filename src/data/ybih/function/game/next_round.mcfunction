@@ -2,7 +2,10 @@
 
 scoreboard players add #round ybih.config 1
 
-execute as @a[gamemode=!spectator,tag=!ybih_player] run function ybih:player/join_game
+# 仍有有效编号时，从可加入的玩家中随机接纳
+execute as @a[gamemode=!spectator,tag=!ybih_player,sort=random] if score #next_id ybih.config matches ..30 run function ybih:player/join_game
+# 围观关闭时也允许被接管为旁观的玩家在空位时加入
+execute as @a[gamemode=spectator,tag=ybih_spec_once,tag=!ybih_player,sort=random] if score #next_id ybih.config matches ..30 run function ybih:game/admit_spectator
 
 # 轮流模式：回合总数按「此刻的参与者数」重算，中途进服的人不会被漏掉
 scoreboard players set #player_count ybih.config 0

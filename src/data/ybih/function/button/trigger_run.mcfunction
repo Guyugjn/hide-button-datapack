@@ -14,6 +14,10 @@
 # 清零一执行，@s ybih.trigger 就变 0，再判什么都判不出来了
 execute unless score #state ybih.config matches 2 if score @s ybih.trigger matches 1..2 run tellraw @s {{TXT_S}}现在不是藏匿阶段，这个按钮先收着{{TXT_M}}gray{{TXT_E}}
 
+execute if score @s ybih.trigger matches 53 if score #state ybih.config matches 4 if entity @s[tag=ybih_player] if entity @e[tag=ybih_showing,limit=1] run function ybih:game/showcase_vote
+execute if score @s ybih.trigger matches 53 unless score #state ybih.config matches 4 run tellraw @s {{TXT_S}}当前没有可跳过的围观按钮{{TXT_M}}gray{{TXT_E}}
+execute if score @s ybih.trigger matches 53 if score #state ybih.config matches 4 unless entity @s[tag=ybih_player] run tellraw @s {{TXT_S}}只有本局参赛者可以投票{{TXT_M}}gray{{TXT_E}}
+execute if score @s ybih.trigger matches 53 if score #state ybih.config matches 4 if entity @s[tag=ybih_player] unless entity @e[tag=ybih_showing,limit=1] run tellraw @s {{TXT_S}}当前没有可跳过的围观按钮{{TXT_M}}gray{{TXT_E}}
 execute unless score #state ybih.config matches 2 run scoreboard players set @s ybih.trigger 0
 execute if score #state ybih.config matches 2 if score @s ybih.trigger matches 1 run function ybih:button/confirm_do
 execute if score #state ybih.config matches 2 if score @s ybih.trigger matches 2 run function ybih:button/redo_do

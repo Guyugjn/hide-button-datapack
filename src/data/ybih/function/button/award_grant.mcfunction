@@ -22,6 +22,8 @@ execute if score #deny ybih.config matches 0 run scoreboard players operation #h
 execute if score #deny ybih.config matches 0 run scoreboard players operation #hit_now ybih.config %= #hit_pow ybih.config
 execute if score #deny ybih.config matches 0 if score #hit_now ybih.config >= #hit_bit ybih.config run scoreboard players set #deny ybih.config 2
 
+# 奖励值与在线领取份数分离；初始人数只有一人时仍保证至少一分。
+execute if score #deny ybih.config matches 0 as @e[tag=ybih_active,limit=1,scores={ybih.value=..0}] run scoreboard players set @s ybih.value 1
 scoreboard players operation #gained ybih.config = @e[tag=ybih_active,limit=1] ybih.value
 execute if score #deny ybih.config matches 0 if score #gained ybih.config matches ..0 run scoreboard players set #deny ybih.config 3
 
